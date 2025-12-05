@@ -73,7 +73,7 @@ main :: proc() {
         })
 
         // Window Setup
-        rl.InitWindow(cast(i32) globals.INITIAL_WINDOW_SIZE.x, cast(i32) globals.INITIAL_WINDOW_SIZE.y, "Schmematic Editor")
+        rl.InitWindow(cast(i32) globals.INITIAL_WINDOW_SIZE.x, cast(i32) globals.INITIAL_WINDOW_SIZE.y, "Abstract Schmematic Editor")
         defer rl.CloseWindow()
         rl.SetTargetFPS(globals.TARGET_FPS)
         rl.SetExitKey(.KEY_NULL)
