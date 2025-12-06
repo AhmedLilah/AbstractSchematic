@@ -5,7 +5,5 @@
 *.exe
 *.pdb
 *.rdi
-*.sch
-*.sym
 *.zip
 *.7z
