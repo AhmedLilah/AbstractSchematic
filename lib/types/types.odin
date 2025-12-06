@@ -90,6 +90,6 @@ GridType :: enum u8 {
 EditorModes :: enum u8 {
 	Normal,
 	FileSaving,
-	Editing,
+	Instantiation,
         Wiring,
 }

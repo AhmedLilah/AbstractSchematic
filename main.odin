@@ -125,7 +125,7 @@ main :: proc() {
                 mousePos := rl.GetMousePosition()
                 mouseCoord := rl.GetScreenToWorld2D(mousePos, camera)
                 mouseGridCoord : [2]f32 =  {0, 0}
-                if rl.IsKeyDown(.LEFT_ALT) && rl.IsKeyPressed(.G) {
+                if (rl.IsKeyDown(.LEFT_ALT) || rl.IsKeyDown(.RIGHT_ALT)) && rl.IsKeyPressed(.G) {
                         showFineGrid = !showFineGrid
                 } else if rl.IsKeyPressed(.G) {
                         showGrid = !showGrid
@@ -147,7 +147,7 @@ main :: proc() {
                         } else if rl.IsKeyPressed(.I) {
                                 devMod := deviceModels[modelIndex]
                                 modelToInstanciate = types.SymbolInstance{devMod, mouseCoord, .East, false, false}
-                                editorMode = .Editing
+                                editorMode = .Instantiation
                         } else if rl.IsKeyPressed(.W) {
                                 editorMode = .Wiring
                         } else if rl.IsKeyDown(.SPACE) {
@@ -161,9 +161,9 @@ main :: proc() {
                                         camera.offset = mousePos
                                         camera.target = mouseWorldPos
                                 }
-                        } else if rl.IsKeyDown(.LEFT_CONTROL) && rl.IsKeyPressed(.S) {
+                        } else if (rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.LEFT_CONTROL)) && rl.IsKeyPressed(.S) {
                                 editorMode = .FileSaving
-                        } else if rl.IsKeyDown(.LEFT_CONTROL) && rl.IsKeyPressed(.Z) {
+                        } else if (rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyDown(.LEFT_CONTROL)) && rl.IsKeyPressed(.Z) {
                                 if length:= len(instances); length > 0 {
                                         resize(&instances, length-1)
                                 }
@@ -181,7 +181,7 @@ main :: proc() {
                                 scale := 0.2 * wheel
                                 camera.zoom = rl.Clamp(camera.zoom + (math.exp(math.log2(camera.zoom)) * scale), globals.DEFAULT_MIN_ZOOM, globals.DEFAULT_MAX_ZOOM)
                         }
-                case .Editing:
+                case .Instantiation:
                         // Handle keyboard Input
                         if rl.IsKeyPressed(.ESCAPE) {
                                 editorMode = .Normal 
@@ -195,7 +195,6 @@ main :: proc() {
                                 devMod := deviceModels[modelIndex%len(deviceModels)]
                                 modelToInstanciate = types.SymbolInstance{devMod, mouseCoord, .East, false, false}
                                 modelIndex += 1
-                        } else if rl.IsKeyPressed(.C) {
                         } else if rl.IsKeyPressed(.R) {
                                 symbolInstance := &modelToInstanciate.(types.SymbolInstance)
                                 switch symbolInstance.rotation {
@@ -214,10 +213,6 @@ main :: proc() {
                         } else if rl.IsKeyPressed(.H) {
                                 symbolInstance := &modelToInstanciate.(types.SymbolInstance)
                                 symbolInstance.horizontalFlip = !modelToInstanciate.(types.SymbolInstance).horizontalFlip
-                        } else if rl.IsKeyPressed(.I) {
-                                devMod := deviceModels[0]
-                                modelToInstanciate = types.SymbolInstance{devMod, mouseCoord, .East, false, false}
-                                editorMode = .Editing
                         } else if rl.IsKeyDown(.SPACE) {
                                 if rl.IsMouseButtonDown(.LEFT) {
                                         previousLeftClickIsDown = true
@@ -229,7 +224,7 @@ main :: proc() {
                                         camera.offset = mousePos
                                         camera.target = mouseWorldPos
                                 }
-                        } else if rl.IsKeyDown(.LEFT_CONTROL) && rl.IsKeyDown(.S) {
+                        } else if (rl.IsKeyDown(.LEFT_CONTROL) || rl.IsKeyPressed(.RIGHT_CONTROL)) && rl.IsKeyDown(.S) {
                                 editorMode = .FileSaving
                         }
 
@@ -256,7 +251,6 @@ main :: proc() {
                                 if len(wirePointsBuffer) > 1 {
                                         wire : types.Wire
                                         wire.pos = wirePointsBuffer[0]
-                                        fmt.printfln("wire pos: %v", wire.pos)
                                         if size := len(wirePointsBuffer); size % 2 == 0 {
                                                 wire.points = make([] types.Point, len(wirePointsBuffer))
                                                 wire.thickness = wireThickness
@@ -289,7 +283,7 @@ main :: proc() {
                         if rl.IsKeyPressed(.ESCAPE) {
                                 editorMode = .Normal 
                                 strings.builder_reset(&newSymbolName)
-                        } else if rl.IsKeyPressed(.ENTER) && (strings.builder_len(newSymbolName) > 0) {
+                        } else if (rl.IsKeyPressed(.ENTER) || rl.IsKeyPressed(.KP_ENTER)) && (strings.builder_len(newSymbolName) > 0) {
                                 editorMode = .Normal 
                                 utils.saveSymbolToFile(transmute(string)newSymbolName.buf[:], instances[:])
                                 strings.builder_reset(&newSymbolName)
@@ -358,7 +352,7 @@ main :: proc() {
                 switch editorMode {
                 case .Normal:
                         draw.crossHair(mouseGridCoord, globals.DEFAULT_CROSSHAIR_THICKNESS, globals.DEFAULT_CROSSHAIR_COLOR, windowSize, camera)
-                case .Editing:
+                case .Instantiation:
                         symbolInstance := &modelToInstanciate.(types.SymbolInstance)
                         symbolInstance.pos = mouseGridCoord
                         draw.instance(modelToInstanciate.(types.SymbolInstance), rl.BLACK, camera)
