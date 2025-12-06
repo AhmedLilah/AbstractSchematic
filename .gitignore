@@ -1,8 +1,7 @@
-
-./assets/
+# Directories to be ignored form the repo.
 ./build/
 
-
+# File types to be ignored from the repo
 *.exe
 *.pdb
 *.rdi
