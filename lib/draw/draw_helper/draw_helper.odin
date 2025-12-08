@@ -8,9 +8,22 @@ rotate :: proc (instance : ^ types.SymbolInstance) {
                  0,     1,
                  -1,     0
         }
-	for &line in instance.symbol.lines {
-		line.p0 = rotationMatrix * line.p0 
-		line.p1 = rotationMatrix * line.p1 
+
+	for &primative in instance.primatives {
+                switch primative.type {
+                case .Line: 
+                        primative.data.line.p0 = rotationMatrix * primative.data.line.p0 
+                        primative.data.line.p1 = rotationMatrix * primative.data.line.p1 
+                case .Spline:
+                case .Triangle:
+                case .Rectangle:
+                case .RoundedRectangle:
+                case .Circle:
+                case .Sector:
+                case .Arc:
+                case .Ring:
+                case .Polygon:
+                }
 	}
 }
 
@@ -19,10 +32,23 @@ flipHorizontally :: proc (instance : ^ types.SymbolInstance) {
                 -1,  0,
                 0,   1
         }
-        for &line in instance.symbol.lines {
-                line.p0 = horizontalFlipMatrix * line.p0 
-                line.p1 = horizontalFlipMatrix * line.p1 
-        }
+
+	for &primative in instance.primatives {
+                switch primative.type {
+                case .Line: 
+                        primative.data.line.p0 = horizontalFlipMatrix * primative.data.line.p0 
+                        primative.data.line.p1 = horizontalFlipMatrix * primative.data.line.p1 
+                case .Spline:
+                case .Triangle:
+                case .Rectangle:
+                case .RoundedRectangle:
+                case .Circle:
+                case .Sector:
+                case .Arc:
+                case .Ring:
+                case .Polygon:
+                }
+	}
 }
 
 flipVertically :: proc (instance : ^ types.SymbolInstance) {
@@ -30,8 +56,20 @@ flipVertically :: proc (instance : ^ types.SymbolInstance) {
                 1,  0,
                 0,  -1
         }
-        for &line in instance.symbol.lines {
-                line.p0 = verticalFlipMatrix * line.p0 
-                line.p1 = verticalFlipMatrix * line.p1 
-        }
+	for &primative in instance.primatives {
+                switch primative.type {
+                case .Line: 
+                        primative.data.line.p0 = verticalFlipMatrix * primative.data.line.p0 
+                        primative.data.line.p1 = verticalFlipMatrix * primative.data.line.p1 
+                case .Spline:
+                case .Triangle:
+                case .Rectangle:
+                case .RoundedRectangle:
+                case .Circle:
+                case .Sector:
+                case .Arc:
+                case .Ring:
+                case .Polygon:
+                }
+	}
 }

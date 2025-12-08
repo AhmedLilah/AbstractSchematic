@@ -26,7 +26,7 @@ crossHair :: proc(mouseCoord : [2] f32, thickness : f32, color : rl.Color, windo
 	rl.DrawLineEx(verticalLineP0,	 verticalLineP1,   thickness/camera.zoom, color)
 }
 
-wire :: proc(wire : types.Wire, color : rl.Color, camera : rl.Camera2D) {
+wire :: proc(wire : types.Wire, camera : rl.Camera2D) {
         for i in 1..<len(wire.points) {
                 p0 := wire.points[i-1] 
                 p1 := wire.points[i] 
@@ -57,27 +57,27 @@ wire :: proc(wire : types.Wire, color : rl.Color, camera : rl.Camera2D) {
                         line1 = {p0.x, p0.y, p1.x, p1.y}
                 }
 
-                rl.DrawLineEx({line0.x, line0.y},  {line0.z, line0.w}, wire.thickness, color)
-                rl.DrawLineEx({line1.x, line1.y},  {line1.z, line1.w}, wire.thickness, color)
+                rl.DrawLineEx({line0.x, line0.y},  {line0.z, line0.w}, wire.strokeThickness, wire.strokeColor)
+                rl.DrawLineEx({line1.x, line1.y},  {line1.z, line1.w}, wire.strokeThickness, wire.strokeColor)
 
                 // // dots to fix wire angle discontinuity
-                rl.DrawCircleV({line0.x, line0.y}, wire.thickness/2, color)
-                rl.DrawCircleV({line0.z, line0.w}, wire.thickness/2, color)
-                rl.DrawCircleV({line1.x, line1.y}, wire.thickness/2, color)
-                rl.DrawCircleV({line1.z, line1.w}, wire.thickness/2, color)
+                rl.DrawCircleV({line0.x, line0.y}, wire.strokeThickness/2, wire.strokeColor)
+                rl.DrawCircleV({line0.z, line0.w}, wire.strokeThickness/2, wire.strokeColor)
+                rl.DrawCircleV({line1.x, line1.y}, wire.strokeThickness/2, wire.strokeColor)
+                rl.DrawCircleV({line1.z, line1.w}, wire.strokeThickness/2, wire.strokeColor)
         }
 }
 
-symbol :: proc(symbol : types.SymbolInstance, color : rl.Color = {0, 0, 0, 255}) {
-        internalSymbolLines := make([] types.Line, len(symbol.symbol.lines))
-        copy(internalSymbolLines, symbol.lines)
-        internalInstanceCopy := types.SymbolInstance{types.Symbol{symbol.symbol.name, internalSymbolLines[:]}, symbol.pos, symbol.rotation, symbol.horizontalFlip, symbol.verticalFlip}
+symbol :: proc(symbolInstance : types.SymbolInstance) {
+        internalSymbolPrimatives := make([] types.Primative, len(symbolInstance.primatives))
+        copy(internalSymbolPrimatives, symbolInstance.primatives)
+        internalInstanceCopy := types.SymbolInstance{types.Symbol{symbolInstance.name, internalSymbolPrimatives[:]}, symbolInstance.pos, symbolInstance.rotation, symbolInstance.horizontalFlip, symbolInstance.verticalFlip}
 
         // Correction for the inverted monitor Y-Axis
         draw_helper.flipVertically(&internalInstanceCopy)
 
         // Handel Rotation
-        switch symbol.rotation  {
+        switch symbolInstance.rotation  {
         case .East:
         case .North:
                 draw_helper.rotate(&internalInstanceCopy)
@@ -96,32 +96,42 @@ symbol :: proc(symbol : types.SymbolInstance, color : rl.Color = {0, 0, 0, 255})
         }
 
         // Horizontal Flipping
-        if symbol.horizontalFlip {
+        if symbolInstance.horizontalFlip {
                 draw_helper.flipHorizontally(&internalInstanceCopy)
         }
 
         // Drawing The Primatives
-	lastIndex := len(internalInstanceCopy.lines) - 1
-	for line in internalInstanceCopy.lines {
-		p0 := line.p0 + internalInstanceCopy.pos
-		p1 := line.p1 + internalInstanceCopy.pos
-		rl.DrawLineEx(p0,  p1,  line.thickness, color)
+	lastIndex := len(internalInstanceCopy.primatives) - 1
+	for primative in internalInstanceCopy.primatives{
+                type, data := primative.type, primative.data
+                switch primative.type {
+                case .Line: 
+                        p0 := data.line.p0 + internalInstanceCopy.pos
+                        p1 := data.line.p1 + internalInstanceCopy.pos
+                        rl.DrawLineEx(p0,  p1,  data.line.strokeThickness, data.line.strokeColor)
 
-                // dots to fix wire angle discontinuity
-                rl.DrawCircleV(p0, line.thickness/2, color)
-                rl.DrawCircleV(p1, line.thickness/2, color)
+                        // dots to fix wire angle discontinuity
+                        rl.DrawCircleV(p0, data.line.strokeThickness/2, data.line.strokeColor)
+                        rl.DrawCircleV(p1, data.line.strokeThickness/2, data.line.strokeColor)
+                case .Spline:
+                case .Triangle:
+                case .Rectangle:
+                case .RoundedRectangle:
+                case .Circle:
+                case .Sector:
+                case .Arc:
+                case .Ring:
+                case .Polygon:
+                }
 	}
-
-        // dots to fix wire angle discontinuity
-	rl.DrawCircleV(internalInstanceCopy.lines[lastIndex].p1, internalInstanceCopy.lines[lastIndex].thickness/2, color)
 }
 
-instance :: proc(instance : types.DrawableInstance, color : rl.Color = {0, 0, 0, 255}, camera : rl.Camera2D) {
+instance :: proc(instance : types.DrawableInstance, camera : rl.Camera2D) {
         switch i in instance {
         case types.SymbolInstance:
-                symbol(i, color)
+                symbol(i)
         case types.Wire:
-                wire(i, color, camera)
+                wire(i, camera)
         }
 } 
 

@@ -39,18 +39,18 @@ parseSymbol :: proc (str : string) -> (symbol : types.Symbol) {
 
 	symbol.name = utf8.runes_to_string(runeArray[:])
 
-	linesSlice := make([] types.Line, len(cords)/5)
+	primatives := make([] types.Primative, len(cords)/5)
 
-	for lineIndex in 0..<(len(cords)/5) {
-		linesSlice[lineIndex].p0.x	= cords[5 * lineIndex + 0 + 0]
-		linesSlice[lineIndex].p0.y	= cords[5 * lineIndex + 0 + 1]
-		linesSlice[lineIndex].p1.x	= cords[5 * lineIndex + 2 + 0]
-		linesSlice[lineIndex].p1.y	= cords[5 * lineIndex + 2 + 1]
-		linesSlice[lineIndex].thickness = cords[5 * lineIndex + 4 + 0]
-	}
-
-	symbol.lines = linesSlice
-
+	// for idx in 0..<(len(cords)/5) {
+	// 	primatives[idx].p0.x	  = cords[5 * idx + 0 + 0]
+	// 	primatives[idx].p0.y	  = cords[5 * idx + 0 + 1]
+	// 	primatives[idx].p1.x	  = cords[5 * idx + 2 + 0]
+	// 	primatives[idx].p1.y	  = cords[5 * idx + 2 + 1]
+	// 	primatives[idx].thickness = cords[5 * idx + 4 + 0]
+	// }
+	//
+	// symbol.lines = linesSlice
+	//
 	return
 }
 
@@ -139,9 +139,9 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
 	for instance in instances {
                 switch i in instance {
                 case types.SymbolInstance:
-                        internalSymbolLines := make([] types.Line, len(i.lines))
-                        copy(internalSymbolLines, i.lines)
-                        internalInstanceCopy := types.SymbolInstance{types.Symbol{i.name, internalSymbolLines[:]}, i.pos, i.rotation, i.horizontalFlip, i.verticalFlip}
+                        internalSymbolPrimatives := make([] types.Primative, len(i.primatives))
+                        copy(internalSymbolPrimatives, i.primatives)
+                        internalInstanceCopy := types.SymbolInstance{types.Symbol{i.name, internalSymbolPrimatives[:]}, i.pos, i.rotation, i.horizontalFlip, i.verticalFlip}
 
                         // Correction for the inverted monitor Y-Axis
                         // draw_helper.flipVertically(&internalInstanceCopy)
@@ -171,13 +171,25 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
                         }
 
                         
-                        for line in internalInstanceCopy.lines {
-                                tempString := fmt.tprintf("\t%v %v %v %v %v\n", 
-                                        (line.p0.x + i.pos.x) - symbolMin.x, (line.p0.y + i.pos.y) - symbolMin.y, 
-                                        (line.p1.x + i.pos.x) - symbolMin.x, (line.p1.y + i.pos.y ) - symbolMin.y, 
-                                        line.thickness
-                                )
-                                strings.write_string(&fileString, tempString)
+                        for primative in internalInstanceCopy.primatives {
+                                #partial switch primative.type {
+                                case .Line:
+                                        tempString := fmt.tprintf("\tLine %v %v %v %v strokeThickness %v strokeColor %v\n", 
+                                                (primative.data.line.p0.x + i.pos.x) - symbolMin.x, (primative.data.line.p0.y + i.pos.y) - symbolMin.y, 
+                                                (primative.data.line.p1.x + i.pos.x) - symbolMin.x, (primative.data.line.p1.y + i.pos.y ) - symbolMin.y, 
+                                                primative.data.line.strokeThickness, primative.data.line.strokeColor
+                                        )
+                                        strings.write_string(&fileString, tempString)
+                                case .Spline:
+                                case .Triangle:
+                                case .Rectangle:
+                                case .RoundedRectangle:
+                                case .Circle:
+                                case .Sector:
+                                case .Arc:
+                                case .Ring:
+                                case .Polygon:
+                                }
                         }
                 case types.Wire:
                         for idx in 1..<len(i.points) {
@@ -210,13 +222,13 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
                                         line1 = {p0.x, p0.y, p1.x, p1.y}
                                 }
 
-                                tempString := fmt.tprintf( "\t%v %v %v %v %v\n\t%v %v %v %v %v\n",
+                                tempString := fmt.tprintf("\t%v %v %v %v %v\n\t%v %v %v %v %v\n",
                                         (line0.x) - symbolMin.x, (line0.y) - symbolMin.y,
                                         (line0.z) - symbolMin.x, (line0.w) - symbolMin.y,
-                                        i.thickness,
+                                        i.strokeThickness,
                                         (line1.x) - symbolMin.x, (line1.y) - symbolMin.y,
                                         (line1.z) - symbolMin.x, (line1.w) - symbolMin.y,
-                                        i.thickness
+                                        i.strokeThickness
                                 )
                                 strings.write_string(&fileString, tempString)
                         }
@@ -231,11 +243,11 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
 	tempfileString : strings.Builder
 	strings.write_string(&tempfileString, name)
 	strings.write_string(&tempfileString, " {\n")
-        for line in tempSymb.lines {
-                tempString := fmt.tprintf("\t%v %v %v %v %v\n", 
-                        line.p0.x, line.p0.y, 
-                        line.p1.x, line.p1.y, 
-                        line.thickness
+        for primative in tempSymb.primatives {
+                tempString := fmt.tprintf("\tLine %v %v %v %v strokeThickness %v strokeColor %v\n", 
+                        (primative.data.line.p0.x), (primative.data.line.p0.y),
+                        (primative.data.line.p1.x), (primative.data.line.p1.y),
+                        primative.data.line.strokeThickness, primative.data.line.strokeColor
                 )
                 strings.write_string(&tempfileString, tempString)
         }

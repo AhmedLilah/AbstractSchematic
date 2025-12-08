@@ -1,53 +1,150 @@
 package types
 
-// Basic Primatives
-// --------------------------------------------------
+import rl "vendor:raylib"
+
+
+// Basic Types
 Point :: [2] f32
 
+// Basic Primatives
+// --------------------------------------------------
+
+FillType :: enum {
+        None,
+        Solid,
+        Gradient,
+}
+
+StrokeData :: struct {
+        strokeColor     : rl.Color,
+        strokeThickness : f32
+}
+
+FillData :: struct {
+        fillType     : FillType,
+        fillColor    : rl.Color,
+}
+
+FillAndStroke :: struct {
+        using fill   : FillData,
+        using stroke : StrokeData,
+}
+
 Line  :: struct {
-	p0, p1 : Point,
-	thickness : f32
+	p0, p1       : Point,
+        using stroke : StrokeData,
+}
+
+SplineType :: enum {
+        Linear,
+        Basis,
+        CatmullRom,
+        BezierQuadratic,
+        BezierCubic,
+}
+
+Spline :: struct {
+        splineType   : SplineType,
+        points       : [] Point,
+        using stroke : StrokeData,
 }
 
 Triangle :: struct {
-        p0, p1, p2 : Point,
-	thickness : f32
+        p0, p1, p2          : Point,
+        using strokeAndFill : FillAndStroke,
 }
 
 Rectangle :: struct {
-        p0, p1, p2 : Point,
-	thickness : f32
+        pos, size           : Point,
+        using strokeAndFill : FillAndStroke,
 }
 
+RoundedRectangle :: struct {
+        p0, p1              : Point,
+        radius              : f32,
+        using strokeAndFill : FillAndStroke,
+}
 
+Circle :: struct {
+        center              : Point,
+        radius              : f32,
+        using strokeAndFill : FillAndStroke,
+}
+
+Sector :: struct {
+        center       : Point,
+        radius       : f32,
+        startAngle   : f32,
+        endAngle     : f32,
+        using stroke : StrokeData,
+}
+
+Arc :: struct {
+        center       : Point,
+        radius       : f32,
+        startAngle   : f32,
+        endAngle     : f32,
+        using stroke : StrokeData,
+}
+
+Ring :: struct {
+        center              : Point,
+        innerRadius         : f32,
+        outerRadius         : f32,
+        startAngle          : f32,
+        endAngle            : f32,
+        using strokeAndFill : FillAndStroke,
+}
+
+Polygon :: struct {
+        center              : Point,
+        numberOfSides       : f32,
+        radius              : f32,
+        rotation            : f32,
+        using strokeAndFill : FillAndStroke,
+}
 
 
 // Symbols Types
 // --------------------------------------------------
-Primative :: enum {
+PrimativeType :: enum {
         Line,
+        Spline,
         Triangle,
         Rectangle, 
+        RoundedRectangle,
+        Circle,
+        Sector,
         Arc,
-        Poly,
-        Spline,
+        Ring,
+        Polygon,
 }
 
-Primatives :: struct {
-        primativeType : Primative,
-        primativeData : union {
-        },
+Primative :: struct {
+        type : PrimativeType,
+        data : struct #raw_union {
+                line             : Line,
+                spline           : Spline,
+                triangle         : Triangle,
+                rectangle        : Rectangle,
+                roundedRectangel : RoundedRectangle,
+                circle           : Circle,
+                sector           : Sector,
+                arc              : Arc,
+                ring             : Ring,
+                polygon          : Polygon,
+        }
 }
 
 Symbol :: struct {
-	name : string,
-	lines : [] Line,                        // this should not be only lines because we want other drawing basic types
+	name       : string,
+	primatives : [] Primative,
 }
 
 Wire :: struct {
-        points    : [] Point,
-        thickness : f32,
-        pos       : [2] f32
+        points       : [] Point,
+        using stroke : StrokeData,
+        pos          : [2] f32
 }
 
 

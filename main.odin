@@ -36,7 +36,7 @@ main :: proc() {
         // Deallocating the memory
         defer {
                 for &deviceModel in deviceModels {
-                        delete(deviceModel.lines)
+                        delete(deviceModel.primatives)
                 }
                 delete(deviceModels)
         }
@@ -111,6 +111,7 @@ main :: proc() {
         // Main Loop
         // ----------------------------------------------------------------------------------------------------
         for !rl.WindowShouldClose() {
+
                 // Handle Full Screen
                 if rl.IsKeyPressed(.F11) {
                         rl.ToggleBorderlessWindowed()
@@ -253,13 +254,13 @@ main :: proc() {
                                         wire.pos = wirePointsBuffer[0]
                                         if size := len(wirePointsBuffer); size % 2 == 0 {
                                                 wire.points = make([] types.Point, len(wirePointsBuffer))
-                                                wire.thickness = wireThickness
+                                                wire.stroke = {rl.BLACK, wireThickness}
                                                 copy(wire.points, wirePointsBuffer[:])
                                                 append(&instances, wire)
                                         } else {
                                                 resize(&wirePointsBuffer, size-1)
                                                 wire.points = make([] types.Point, len(wirePointsBuffer))
-                                                wire.thickness = wireThickness
+                                                wire.stroke = {rl.BLACK, wireThickness}
                                                 copy(wire.points, wirePointsBuffer[:])
                                                 append(&instances, wire)
                                         }
@@ -345,7 +346,7 @@ main :: proc() {
 
                 // Draw Symbols
                 for &instance in instances {
-                        draw.instance(instance, rl.BLACK, camera)
+                        draw.instance(instance, camera)
                 }
 
                 // show the file name to be saved
@@ -355,11 +356,11 @@ main :: proc() {
                 case .Instantiation:
                         symbolInstance := &modelToInstanciate.(types.SymbolInstance)
                         symbolInstance.pos = mouseGridCoord
-                        draw.instance(modelToInstanciate.(types.SymbolInstance), rl.BLACK, camera)
+                        draw.instance(modelToInstanciate.(types.SymbolInstance), camera)
                         draw.crossHair(mouseGridCoord, globals.DEFAULT_CROSSHAIR_THICKNESS, globals.DEFAULT_CROSSHAIR_COLOR, windowSize, camera)
                 case .Wiring:
                         append(&wirePointsBuffer, mouseGridCoord)
-                        draw.wire(types.Wire{wirePointsBuffer[:], wireThickness, mouseGridCoord}, rl.BLACK, camera)
+                        draw.wire(types.Wire{wirePointsBuffer[:], {rl.BLACK, wireThickness}, mouseGridCoord}, camera)
                         resize(&wirePointsBuffer, len(wirePointsBuffer)-1)
                         draw.crossHair(mouseGridCoord, globals.DEFAULT_CROSSHAIR_THICKNESS, globals.DEFAULT_CROSSHAIR_COLOR, windowSize, camera)
                 case .FileSaving:
