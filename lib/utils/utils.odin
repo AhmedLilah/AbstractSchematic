@@ -12,50 +12,14 @@ import "core:sys/windows"
 import "core:unicode"
 import "core:unicode/utf8"
 
-
 import "../types"
 import "../draw/draw_helper"
-
-
-parseSymbol :: proc (str : string) -> (symbol : types.Symbol) {
-	tempNumRuneArray : [dynamic] rune 
-	runeArray : [dynamic] rune
-	cords : [dynamic] f32
-
-	for value in str {
-		if unicode.is_alpha(value) {
-			append_elem(&runeArray, value)
-		} else if unicode.is_number(value) || value == '-' || value == '.' {
-			append_elem(&tempNumRuneArray, value)
-		} else {
-			if len(tempNumRuneArray) > 0 {
-				numStr	:= utf8.runes_to_string(tempNumRuneArray[:])
-				num, _ := strconv.parse_f32(numStr)
-				append_elem(&cords, num)
-				clear(&tempNumRuneArray)
-			}
-		}
-	}
-
-	symbol.name = utf8.runes_to_string(runeArray[:])
-
-	primatives := make([] types.Primative, len(cords)/5)
-
-	// for idx in 0..<(len(cords)/5) {
-	// 	primatives[idx].p0.x	  = cords[5 * idx + 0 + 0]
-	// 	primatives[idx].p0.y	  = cords[5 * idx + 0 + 1]
-	// 	primatives[idx].p1.x	  = cords[5 * idx + 2 + 0]
-	// 	primatives[idx].p1.y	  = cords[5 * idx + 2 + 1]
-	// 	primatives[idx].thickness = cords[5 * idx + 4 + 0]
-	// }
-	//
-	// symbol.lines = linesSlice
-	//
-	return
-}
+import "../parser"
 
 
 readLibraryModelFiles :: proc(libraryDirName : string) -> (symbols : [dynamic] types.Symbol) {
+        fmt.println("starting library reading")
+        defer fmt.println("finished library reading")
 	if !os.is_dir(libraryDirName) {
 		msg := fmt.tprintf("'%s' isn't a directory.", libraryDirName)
 		panic(msg)
@@ -98,7 +62,7 @@ readLibraryModelFiles :: proc(libraryDirName : string) -> (symbols : [dynamic] t
 			}
 
 			fileStr := fmt.tprintf("%s", file)
-			sym := parseSymbol(fileStr)
+			sym := parser.parse(fileStr)
 			append(&symbols, sym)
 		}
 	}
@@ -116,7 +80,7 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
 	symbolMin: [2] f32 = 1e30
 
 	for instance in instances {
-                #partial switch v in instance {
+                switch v in instance {
                 case types.SymbolInstance:
                         if min := min(symbolMin.x, v.pos.x); min < symbolMin.x {
                                 symbolMin = v.pos
@@ -231,14 +195,23 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
                                         i.strokeThickness
                                 )
                                 strings.write_string(&fileString, tempString)
+                                fmt.printf("\t%v %v %v %v %v\n\t%v %v %v %v %v\n",
+                                        (line0.x) - symbolMin.x, (line0.y) - symbolMin.y,
+                                        (line0.z) - symbolMin.x, (line0.w) - symbolMin.y,
+                                        i.strokeThickness,
+                                        (line1.x) - symbolMin.x, (line1.y) - symbolMin.y,
+                                        (line1.z) - symbolMin.x, (line1.w) - symbolMin.y,
+                                        i.strokeThickness
+                                )
                         }
                 }
 	} 
+
 	strings.write_string(&fileString, "}\n")
 
         ////////////////////////////////////////////
 
-        tempSymb := parseSymbol(strings.to_string(fileString))
+        tempSymb := parser.parse(strings.to_string(fileString))
         draw_helper.flipVertically(&types.SymbolInstance{tempSymb, {0,0}, .East, false, false})
 	tempfileString : strings.Builder
 	strings.write_string(&tempfileString, name)
@@ -270,7 +243,8 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
 	}
 
 	n : int
-	n, fileErr = os2.write(file, tempfileString.buf[:])
+	n, fileErr = os2.write(file, fileString.buf[:])
+        // n, fileErr = os2.write(file, tempfileString.buf[:])
 
 	switch _ in fileErr {
 	case os2.General_Error:
