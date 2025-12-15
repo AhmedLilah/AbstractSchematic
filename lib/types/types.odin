@@ -6,7 +6,7 @@ import rl "vendor:raylib"
 // Basic Types
 Point :: [2] f32
 
-// Basic Primatives
+// Basic Primitives
 // --------------------------------------------------
 
 FillType :: enum {
@@ -107,7 +107,7 @@ Polygon :: struct {
 
 // Symbols Types
 // --------------------------------------------------
-PrimativeType :: enum {
+PrimitiveType :: enum {
         Line,
         Spline,
         Triangle,
@@ -120,9 +120,9 @@ PrimativeType :: enum {
         Polygon,
 }
 
-Primative :: struct {
-        type : PrimativeType,
-        data : struct #raw_union {
+Primitive :: struct {
+        type : PrimitiveType,
+        using data : struct #raw_union {
                 line             : Line,
                 spline           : Spline,
                 triangle         : Triangle,
@@ -138,7 +138,7 @@ Primative :: struct {
 
 Symbol :: struct {
 	name       : string,
-	primatives : [] Primative,
+	primitives : [] Primitive,
 }
 
 Wire :: struct {

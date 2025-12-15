@@ -1,6 +1,5 @@
 package main
 
-// Importing required packages ----------------------------------------------------------------------------------------------------
 import "core:fmt"
 import "core:math"
 import "core:strings"
@@ -15,41 +14,11 @@ import "lib/types"
 import "lib/globals"
 
 
-handleGirdOptions :: proc (showGrid : ^ bool, showFineGrid : ^ bool, mouseCoord : ^ [2] f32, mouseGridCoord : ^ [2] f32) {
-        if (rl.IsKeyDown(.LEFT_ALT) || rl.IsKeyDown(.RIGHT_ALT)) && rl.IsKeyPressed(.G) {
-                showFineGrid^ = !showFineGrid^
-        } else if rl.IsKeyPressed(.G) {
-                showGrid^ = !showGrid^
-        }
-        if showFineGrid^ {
-                mouseGridCoord^ = {utils.round(mouseCoord.x, globals.DEFAULT_GRID_SIZE/5), utils.round(mouseCoord.y, globals.DEFAULT_GRID_SIZE/5)}
-        } else {
-                mouseGridCoord^ = {utils.round(mouseCoord.x, globals.DEFAULT_GRID_SIZE), utils.round(mouseCoord.y, globals.DEFAULT_GRID_SIZE)}
-        } 
-}
+ptr   : ^ f32
+slice : [] f32 
+darra : [dynamic] f32
+cPtr  : [^] f32
 
-
-calculateGridSize :: proc (showGrid : ^ bool, showFineGrid : ^ bool, gridSize : ^ f32, windowSize : ^ [2] f32, camera : ^ rl.Camera2D) {
-                // Hadeling adaptive grid sizing
-                if showGrid^ {
-                        if 0.2 <= camera.zoom && camera.zoom < 0.75{
-                                gridSize^ = globals.DEFAULT_GRID_SIZE * globals.DEFAULT_GRID_SCALING_FACTOR
-                        } else if 0.75 <= camera.zoom && camera.zoom < 4 {
-                                gridSize^ = globals.DEFAULT_GRID_SIZE
-                        } else if  4 <= camera.zoom  && camera.zoom <= 5 {
-                                gridSize^ = globals.DEFAULT_GRID_SIZE / globals.DEFAULT_GRID_SCALING_FACTOR
-                        }
-
-                        if showFineGrid^ {
-                                // Drawing the grid
-                                draw.grid(gridSize^/globals.DEFAULT_FINE_GRID_FACTOR, .Dots, globals.DEFAULT_GRID_COLOR, windowSize^, camera^)
-                        } else {
-                                // Drawing the grid
-                                draw.grid(gridSize^, .Dots, globals.DEFAULT_GRID_COLOR, windowSize^, camera^)
-                        }
-                }
-
-}
 
 main :: proc() {
         // Global State
@@ -75,7 +44,7 @@ main :: proc() {
         // Deallocating the memory
         defer {
                 for &deviceModel in deviceModels {
-                        delete(deviceModel.primatives)
+                        delete(deviceModel.primitives)
                 }
                 delete(deviceModels)
         }
@@ -165,10 +134,9 @@ main :: proc() {
                 mousePos   = rl.GetMousePosition()
                 mouseCoord = rl.GetScreenToWorld2D(mousePos, camera)
 
-
                 switch editorMode {
                 case .Normal:
-                        handleGirdOptions(&showGrid, &showFineGrid, &mouseCoord, &mouseGridCoord)
+                        utils.handleGirdOptions(&showGrid, &showFineGrid, &mouseCoord, &mouseGridCoord)
 
                         // Handle keyboard Input
                         if rl.IsKeyPressed(.F) {
@@ -214,7 +182,7 @@ main :: proc() {
                                 camera.zoom = rl.Clamp(camera.zoom + (math.exp(math.log2(camera.zoom)) * scale), globals.DEFAULT_MIN_ZOOM, globals.DEFAULT_MAX_ZOOM)
                         }
                 case .Instantiation:
-                        handleGirdOptions(&showGrid, &showFineGrid, &mouseCoord, &mouseGridCoord)
+                        utils.handleGirdOptions(&showGrid, &showFineGrid, &mouseCoord, &mouseGridCoord)
 
                         // Handle keyboard Input
                         if rl.IsKeyPressed(.ESCAPE) {
@@ -280,7 +248,7 @@ main :: proc() {
                                 camera.zoom = rl.Clamp(camera.zoom + (math.exp(math.log2(camera.zoom)) * scale), globals.DEFAULT_MIN_ZOOM, globals.DEFAULT_MAX_ZOOM)
                         }
                 case .Wiring:
-                        handleGirdOptions(&showGrid, &showFineGrid, &mouseCoord, &mouseGridCoord)
+                        utils.handleGirdOptions(&showGrid, &showFineGrid, &mouseCoord, &mouseGridCoord)
 
                         // Handle keyboard input
                         if rl.IsKeyPressed(.ESCAPE) {
@@ -358,7 +326,15 @@ main :: proc() {
                 // ----------------------------------------------------------------------------------------------------
                 rl.BeginMode2D(camera)
 
-                calculateGridSize(&showGrid, &showFineGrid, &gridSize, &windowSize, &camera)
+                utils.calculateGridSize(&showGrid, &showFineGrid, &gridSize, &windowSize, &camera)
+
+                if showFineGrid {
+                        // Drawing the grid
+                        draw.grid(gridSize/globals.DEFAULT_FINE_GRID_FACTOR, .Dots, globals.DEFAULT_GRID_COLOR, windowSize, camera)
+                } else {
+                        // Drawing the grid
+                        draw.grid(gridSize, .Dots, globals.DEFAULT_GRID_COLOR, windowSize, camera)
+                }
 
                 // Draw Symbols
                 for &instance in instances {

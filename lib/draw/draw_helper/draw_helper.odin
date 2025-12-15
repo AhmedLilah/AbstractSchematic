@@ -9,11 +9,11 @@ rotate :: proc (instance : ^ types.SymbolInstance) {
                  -1,     0
         }
 
-	for &primative in instance.primatives {
-                switch primative.type {
+	for &primitive in instance.primitives {
+                switch primitive.type {
                 case .Line: 
-                        primative.data.line.p0 = rotationMatrix * primative.data.line.p0 
-                        primative.data.line.p1 = rotationMatrix * primative.data.line.p1 
+                        primitive.line.p0 = rotationMatrix * primitive.line.p0 
+                        primitive.line.p1 = rotationMatrix * primitive.line.p1 
                 case .Spline:
                 case .Triangle:
                 case .Rectangle:
@@ -33,11 +33,11 @@ flipHorizontally :: proc (instance : ^ types.SymbolInstance) {
                 0,   1
         }
 
-	for &primative in instance.primatives {
-                switch primative.type {
+	for &primitive in instance.primitives {
+                switch primitive.type {
                 case .Line: 
-                        primative.data.line.p0 = horizontalFlipMatrix * primative.data.line.p0 
-                        primative.data.line.p1 = horizontalFlipMatrix * primative.data.line.p1 
+                        primitive.line.p0 = horizontalFlipMatrix * primitive.line.p0 
+                        primitive.line.p1 = horizontalFlipMatrix * primitive.line.p1 
                 case .Spline:
                 case .Triangle:
                 case .Rectangle:
@@ -56,11 +56,11 @@ flipVertically :: proc (instance : ^ types.SymbolInstance) {
                 1,  0,
                 0,  -1
         }
-	for &primative in instance.primatives {
-                switch primative.type {
+	for &primitive in instance.primitives {
+                switch primitive.type {
                 case .Line: 
-                        primative.data.line.p0 = verticalFlipMatrix * primative.data.line.p0 
-                        primative.data.line.p1 = verticalFlipMatrix * primative.data.line.p1 
+                        primitive.line.p0 = verticalFlipMatrix * primitive.line.p0 
+                        primitive.line.p1 = verticalFlipMatrix * primitive.line.p1 
                 case .Spline:
                 case .Triangle:
                 case .Rectangle:

@@ -5,6 +5,7 @@ import "core:fmt"
 import "core:math"
 
 import rl "vendor:raylib"
+import rlgl "vendor:raylib/rlgl"
 
 import "../utils"
 import "../types"
@@ -68,10 +69,10 @@ wire :: proc(wire : types.Wire, camera : rl.Camera2D) {
         }
 }
 
-symbol :: proc(symbolInstance : types.SymbolInstance) {
-        internalSymbolPrimatives := make([] types.Primative, len(symbolInstance.primatives))
-        copy(internalSymbolPrimatives, symbolInstance.primatives)
-        internalInstanceCopy := types.SymbolInstance{types.Symbol{symbolInstance.name, internalSymbolPrimatives[:]}, symbolInstance.pos, symbolInstance.rotation, symbolInstance.horizontalFlip, symbolInstance.verticalFlip}
+symbol :: proc(symbolInstance : types.SymbolInstance, camera : rl.Camera2D) {
+        internalSymbolPrimitives := make([] types.Primitive, len(symbolInstance.primitives))
+        copy(internalSymbolPrimitives, symbolInstance.primitives)
+        internalInstanceCopy := types.SymbolInstance{types.Symbol{symbolInstance.name, internalSymbolPrimitives[:]}, symbolInstance.pos, symbolInstance.rotation, symbolInstance.horizontalFlip, symbolInstance.verticalFlip}
 
         // Correction for the inverted monitor Y-Axis
         draw_helper.flipVertically(&internalInstanceCopy)
@@ -100,21 +101,46 @@ symbol :: proc(symbolInstance : types.SymbolInstance) {
                 draw_helper.flipHorizontally(&internalInstanceCopy)
         }
 
-        // Drawing The Primatives
-	lastIndex := len(internalInstanceCopy.primatives) - 1
-	for primative in internalInstanceCopy.primatives{
-                type, data := primative.type, primative.data
-                switch primative.type {
+        pos:= internalInstanceCopy.pos
+
+        // Drawing The Primitives
+	lastIndex := len(internalInstanceCopy.primitives) - 1
+	for primitive in internalInstanceCopy.primitives{
+                type := primitive.type
+                switch type {
                 case .Line: 
-                        p0 := data.line.p0 + internalInstanceCopy.pos
-                        p1 := data.line.p1 + internalInstanceCopy.pos
-                        rl.DrawLineEx(p0,  p1,  data.line.strokeThickness, data.line.strokeColor)
+                        line := primitive.line
+
+                        p0 := line.p0 + pos
+                        p1 := line.p1 + pos
+                        rl.DrawLineEx(p0,  p1,  line.strokeThickness, line.strokeColor)
 
                         // dots to fix wire angle discontinuity
-                        rl.DrawCircleV(p0, data.line.strokeThickness/2, data.line.strokeColor)
-                        rl.DrawCircleV(p1, data.line.strokeThickness/2, data.line.strokeColor)
+                        rl.DrawCircleV(p0, line.strokeThickness/2, line.strokeColor)
+                        rl.DrawCircleV(p1, line.strokeThickness/2, line.strokeColor)
                 case .Spline:
                 case .Triangle:
+                        triangle := primitive.triangle
+
+                        p0 := triangle.p0 + pos
+                        p1 := triangle.p1 + pos
+                        p2 := triangle.p2 + pos
+
+                        lineWidth := triangle.strokeThickness * math.pow(camera.zoom, 2)
+
+                        fmt.printfln("line width: %v", lineWidth)
+
+                        rlgl.DisableBackfaceCulling()
+                        rlgl.SetLineWidth(lineWidth)
+
+                        rl.DrawTriangle(p0, p1, p2, triangle.fillColor)
+                        rl.DrawTriangleLines(p0, p1, p2, triangle.strokeColor)
+                        
+                        // dots to fix wire angle discontinuity
+                        rl.DrawCircleV(p0, triangle.strokeThickness/2, triangle.strokeColor)
+                        rl.DrawCircleV(p1, triangle.strokeThickness/2, triangle.strokeColor)
+                        rl.DrawCircleV(p2, triangle.strokeThickness/2, triangle.strokeColor)
+                        
                 case .Rectangle:
                 case .RoundedRectangle:
                 case .Circle:
@@ -129,7 +155,7 @@ symbol :: proc(symbolInstance : types.SymbolInstance) {
 instance :: proc(instance : types.DrawableInstance, camera : rl.Camera2D) {
         switch i in instance {
         case types.SymbolInstance:
-                symbol(i)
+                symbol(i, camera)
         case types.Wire:
                 wire(i, camera)
         }

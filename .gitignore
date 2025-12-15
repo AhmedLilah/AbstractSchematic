@@ -1,5 +1,6 @@
 # Directories to be ignored form the repo.
 ./build/
+./.VS
 
 # File types to be ignored from the repo
 *.exe

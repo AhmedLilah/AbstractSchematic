@@ -12,10 +12,17 @@ import "core:sys/windows"
 import "core:unicode"
 import "core:unicode/utf8"
 
+import rl "vendor:raylib"
+
 import "../types"
 import "../draw/draw_helper"
 import "../parser"
+import "../globals"
 
+
+// @NOTE: solve the EEEEE error problem
+// @BUG: when saving symbols the color gets saved showing teh [,] format. 
+//      probably because we are using the default formatting.
 
 readLibraryModelFiles :: proc(libraryDirName : string) -> (symbols : [dynamic] types.Symbol) {
         fmt.println("starting library reading")
@@ -62,7 +69,7 @@ readLibraryModelFiles :: proc(libraryDirName : string) -> (symbols : [dynamic] t
 			}
 
 			fileStr := fmt.tprintf("%s", file)
-			sym := parser.parse(fileStr)
+			sym, EEEEE := parser.parse(fileStr)
 			append(&symbols, sym)
 		}
 	}
@@ -103,12 +110,12 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
 	for instance in instances {
                 switch i in instance {
                 case types.SymbolInstance:
-                        internalSymbolPrimatives := make([] types.Primative, len(i.primatives))
-                        copy(internalSymbolPrimatives, i.primatives)
-                        internalInstanceCopy := types.SymbolInstance{types.Symbol{i.name, internalSymbolPrimatives[:]}, i.pos, i.rotation, i.horizontalFlip, i.verticalFlip}
+                        internalSymbolPrimitives := make([] types.Primitive, len(i.primitives))
+                        copy(internalSymbolPrimitives, i.primitives)
+                        internalInstanceCopy := types.SymbolInstance{types.Symbol{i.name, internalSymbolPrimitives[:]}, i.pos, i.rotation, i.horizontalFlip, i.verticalFlip}
 
                         // Correction for the inverted monitor Y-Axis
-                        // draw_helper.flipVertically(&internalInstanceCopy)
+                        draw_helper.flipVertically(&internalInstanceCopy)
 
                         // Handel Rotation
                         switch i.rotation  {
@@ -135,13 +142,17 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
                         }
 
                         
-                        for primative in internalInstanceCopy.primatives {
-                                #partial switch primative.type {
+                        for primitive in internalInstanceCopy.primitives {
+                                #partial switch primitive.type {
                                 case .Line:
-                                        tempString := fmt.tprintf("\tLine %v %v %v %v strokeThickness %v strokeColor %v\n", 
-                                                (primative.data.line.p0.x + i.pos.x) - symbolMin.x, (primative.data.line.p0.y + i.pos.y) - symbolMin.y, 
-                                                (primative.data.line.p1.x + i.pos.x) - symbolMin.x, (primative.data.line.p1.y + i.pos.y ) - symbolMin.y, 
-                                                primative.data.line.strokeThickness, primative.data.line.strokeColor
+                                        tempString := fmt.tprintf("\tLine %v %v %v %v strokeThickness %v strokeColor %v %v %v %v\n", 
+                                                (primitive.line.p0.x + i.pos.x) - symbolMin.x, (primitive.line.p0.y + i.pos.y) - symbolMin.y, 
+                                                (primitive.line.p1.x + i.pos.x) - symbolMin.x, (primitive.line.p1.y + i.pos.y ) - symbolMin.y, 
+                                                primitive.line.strokeThickness, 
+                                                primitive.line.strokeColor.r,
+                                                primitive.line.strokeColor.g,
+                                                primitive.line.strokeColor.g,
+                                                primitive.line.strokeColor.a,
                                         )
                                         strings.write_string(&fileString, tempString)
                                 case .Spline:
@@ -211,20 +222,20 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
 
         ////////////////////////////////////////////
 
-        tempSymb := parser.parse(strings.to_string(fileString))
-        draw_helper.flipVertically(&types.SymbolInstance{tempSymb, {0,0}, .East, false, false})
-	tempfileString : strings.Builder
-	strings.write_string(&tempfileString, name)
-	strings.write_string(&tempfileString, " {\n")
-        for primative in tempSymb.primatives {
-                tempString := fmt.tprintf("\tLine %v %v %v %v strokeThickness %v strokeColor %v\n", 
-                        (primative.data.line.p0.x), (primative.data.line.p0.y),
-                        (primative.data.line.p1.x), (primative.data.line.p1.y),
-                        primative.data.line.strokeThickness, primative.data.line.strokeColor
-                )
-                strings.write_string(&tempfileString, tempString)
-        }
-	strings.write_string(&tempfileString, "}\n")
+ //        tempSymb, EEEEE := parser.parse(strings.to_string(fileString))
+ //        draw_helper.flipVertically(&types.SymbolInstance{tempSymb, {0,0}, .East, false, false})
+	// tempfileString : strings.Builder
+	// strings.write_string(&tempfileString, name)
+	// strings.write_string(&tempfileString, " {\n")
+ //        for primitive in tempSymb.primitives {
+ //                tempString := fmt.tprintf("\tLine %v %v %v %v strokeThickness %v strokeColor %v\n", 
+ //                        (primitive.line.p0.x), (primitive.line.p0.y),
+ //                        (primitive.line.p1.x), (primitive.line.p1.y),
+ //                        primitive.line.strokeThickness, primitive.line.strokeColor
+ //                )
+ //                strings.write_string(&tempfileString, tempString)
+ //        }
+	// strings.write_string(&tempfileString, "}\n")
         
         ///////////////////////////////////////////
 
@@ -269,6 +280,35 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
 	case windows.System_Error:
 		fmt.printfln("File Closing Error %s", os2.error_string(fileErr))
 	}
+}
+
+
+handleGirdOptions :: proc (showGrid : ^ bool, showFineGrid : ^ bool, mouseCoord : ^ [2] f32, mouseGridCoord : ^ [2] f32) {
+        if (rl.IsKeyDown(.LEFT_ALT) || rl.IsKeyDown(.RIGHT_ALT)) && rl.IsKeyPressed(.G) {
+                showFineGrid^ = !showFineGrid^
+        } else if rl.IsKeyPressed(.G) {
+                showGrid^ = !showGrid^
+        }
+        if showFineGrid^ {
+                mouseGridCoord^ = {round(mouseCoord.x, globals.DEFAULT_GRID_SIZE/5), round(mouseCoord.y, globals.DEFAULT_GRID_SIZE/5)}
+        } else {
+                mouseGridCoord^ = {round(mouseCoord.x, globals.DEFAULT_GRID_SIZE), round(mouseCoord.y, globals.DEFAULT_GRID_SIZE)}
+        } 
+}
+
+
+calculateGridSize :: proc (showGrid : ^ bool, showFineGrid : ^ bool, gridSize : ^ f32, windowSize : ^ [2] f32, camera : ^ rl.Camera2D) {
+                // Hadeling adaptive grid sizing
+                if showGrid^ {
+                        if 0.2 <= camera.zoom && camera.zoom < 0.75{
+                                gridSize^ = globals.DEFAULT_GRID_SIZE * globals.DEFAULT_GRID_SCALING_FACTOR
+                        } else if 0.75 <= camera.zoom && camera.zoom < 4 {
+                                gridSize^ = globals.DEFAULT_GRID_SIZE
+                        } else if  4 <= camera.zoom  && camera.zoom <= 5 {
+                                gridSize^ = globals.DEFAULT_GRID_SIZE / globals.DEFAULT_GRID_SCALING_FACTOR
+                        }
+                }
+
 }
 
 
