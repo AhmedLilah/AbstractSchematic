@@ -1,6 +1,6 @@
-package draw_helper
+package transform
 
-import "../../types"
+import "../types"
 import "core:fmt"
 
 rotate :: proc (instance : ^ types.SymbolInstance) {
@@ -16,9 +16,13 @@ rotate :: proc (instance : ^ types.SymbolInstance) {
                         primitive.line.p1 = rotationMatrix * primitive.line.p1 
                 case .Spline:
                 case .Triangle:
+                        primitive.triangle.p0 = rotationMatrix * primitive.triangle.p0
+                        primitive.triangle.p1 = rotationMatrix * primitive.triangle.p1
+                        primitive.triangle.p2 = rotationMatrix * primitive.triangle.p2
                 case .Rectangle:
                 case .RoundedRectangle:
                 case .Circle:
+                        primitive.circle.center = rotationMatrix * primitive.circle.center
                 case .Sector:
                 case .Arc:
                 case .Ring:
@@ -40,9 +44,15 @@ flipHorizontally :: proc (instance : ^ types.SymbolInstance) {
                         primitive.line.p1 = horizontalFlipMatrix * primitive.line.p1 
                 case .Spline:
                 case .Triangle:
+                        primitive.triangle.p0 = horizontalFlipMatrix * primitive.triangle.p0
+                        primitive.triangle.p1 = horizontalFlipMatrix * primitive.triangle.p1
+                        primitive.triangle.p2 = horizontalFlipMatrix * primitive.triangle.p2
                 case .Rectangle:
+                        primitive.rectangle.pos = horizontalFlipMatrix * primitive.rectangle.pos
+                        primitive.rectangle.pos.x -= primitive.rectangle.size.x
                 case .RoundedRectangle:
                 case .Circle:
+                        primitive.circle.center = horizontalFlipMatrix * primitive.circle.center
                 case .Sector:
                 case .Arc:
                 case .Ring:
@@ -63,9 +73,15 @@ flipVertically :: proc (instance : ^ types.SymbolInstance) {
                         primitive.line.p1 = verticalFlipMatrix * primitive.line.p1 
                 case .Spline:
                 case .Triangle:
+                        primitive.triangle.p0 = verticalFlipMatrix * primitive.triangle.p0
+                        primitive.triangle.p1 = verticalFlipMatrix * primitive.triangle.p1
+                        primitive.triangle.p2 = verticalFlipMatrix * primitive.triangle.p2
                 case .Rectangle:
+                        primitive.rectangle.pos = verticalFlipMatrix * primitive.rectangle.pos
+                        primitive.rectangle.pos.y -= primitive.rectangle.size.y
                 case .RoundedRectangle:
                 case .Circle:
+                        primitive.circle.center = verticalFlipMatrix * primitive.circle.center
                 case .Sector:
                 case .Arc:
                 case .Ring:

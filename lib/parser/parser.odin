@@ -14,7 +14,7 @@ import "core:unicode"
 import "core:unicode/utf8"
 
 import "../types"
-import "../draw/draw_helper"
+import "../transform"
 
 
 TokenType :: enum { 
@@ -186,12 +186,24 @@ parse :: proc (str : string) -> (symbol : types.Symbol, err : union { Tokenizati
                                 }
                                 idx = nextTokenIdx
                                 append(&primitives, primitive)
-                        case strings.compare(str, "Rectangle ") == 0:
+                        case strings.compare(str, "Rectangle") == 0:
+                                fmt.println("Entered Rectangle parsing")
                                 primitive, nextTokenIdx, primitiveErr := parseRectanglePrimitive(&tokens, idx)
                                 if primitiveErr != nil {
+                                        fmt.println("Encountered and error in Rectangle parsing")
                                         err = primitiveErr
                                         return
                                 }
+                                fmt.printfln("Finished Rectangle parsing.")
+
+                                fmt.printfln("Rectangle:")
+                                fmt.printfln("\tpos: %v", primitive.rectangle.pos)
+                                fmt.printfln("\tsize: %v", primitive.rectangle.size)
+                                fmt.printfln("\t stroke thickness: %v", primitive.rectangle.strokeThickness)
+                                fmt.printfln("\tstroke color: %v", primitive.rectangle.strokeColor)
+                                fmt.printfln("\tfill tpe: %v", primitive.rectangle.fillType)
+                                fmt.printfln("\tfill color: %v", primitive.rectangle.fillColor)
+
                                 idx = nextTokenIdx
                                 append(&primitives, primitive)
                         case strings.compare(str, "RoundedRectangle") == 0:
@@ -438,6 +450,107 @@ parseTrianglePrimitive ::proc (tokens : ^ [] Token, idx : int) -> (primitive : t
 }
 
 parseRectanglePrimitive ::proc (tokens : ^ [] Token, idx : int) -> (primitive : types.Primitive, nextTokenIndex : int, err : ParsingError = nil) {
+        nextTokenIndex = idx 
+        primitive.type = .Rectangle
+        rectangleCoord : [4] f32
+
+        for i in 1..=4 {
+                if tokens[nextTokenIndex + i].type == .Number {
+                        rectangleCoord[i-1] = tokens[nextTokenIndex + i].data.num
+                } else {
+                        err = .UnexpectedTokenTypeAtPrimitivePropertyValue
+                        return
+                }
+        }
+
+        primitive.rectangle.pos.x = rectangleCoord[0]
+        primitive.rectangle.pos.y = rectangleCoord[1]
+        primitive.rectangle.size.x = rectangleCoord[2]
+        primitive.rectangle.size.y = rectangleCoord[3]
+
+        // checking we get the correct property name
+        if tokens[nextTokenIndex + 5].type != .String {
+                err = .UnexpectedTokenTypeAtPrimitivePropertyName
+                return
+        }
+
+        if  strings.compare(tokens[nextTokenIndex + 5].data.str, "strokeThickness") != 0 {
+                err = .UnexpectedValueAtPrimitivePropertyName
+                return
+        }
+
+
+        // checking we get the property value
+        if tokens[nextTokenIndex + 6].type != .Number {
+                err = .UnexpectedTokenTypeAtPrimitivePropertyValue
+        }
+
+        primitive.rectangle.strokeThickness = tokens[nextTokenIndex + 6].data.num
+
+        // checking we get the correct property name
+        if tokens[nextTokenIndex + 7].type != .String {
+                err = .UnexpectedTokenTypeAtPrimitivePropertyName
+                return
+        }
+
+        if  strings.compare(tokens[nextTokenIndex + 7].data.str, "strokeColor") != 0 {
+                err = .UnexpectedValueAtPrimitivePropertyName
+                return
+        }
+
+        for i in 8..=11 {
+                if tokens[nextTokenIndex + i].type == .Number {
+                        rectangleCoord[i-8] = tokens[nextTokenIndex + i].data.num
+                } else {
+                        err = .UnexpectedTokenTypeAtPrimitivePropertyValue
+                        return
+                }
+        }
+        primitive.rectangle.strokeColor = {auto_cast rectangleCoord[0], auto_cast rectangleCoord[1], auto_cast rectangleCoord[2], auto_cast rectangleCoord[3]}
+
+
+        // checking we get the correct property name
+        if tokens[nextTokenIndex + 12].type != .String {
+                err = .UnexpectedTokenTypeAtPrimitivePropertyName
+                return
+        }
+
+        if  strings.compare(tokens[nextTokenIndex + 12].data.str, "fillType") != 0 {
+                err = .UnexpectedValueAtPrimitivePropertyName
+                return
+        }
+
+
+        // checking we get the property value
+        if tokens[nextTokenIndex + 13].type != .Number {
+                err = .UnexpectedTokenTypeAtPrimitivePropertyValue
+        }
+
+        primitive.triangle.strokeThickness = tokens[nextTokenIndex + 15].data.num
+
+        // checking we get the correct property name
+        if tokens[nextTokenIndex + 14].type != .String {
+                err = .UnexpectedTokenTypeAtPrimitivePropertyName
+                return
+        }
+
+        if  strings.compare(tokens[nextTokenIndex + 14].data.str, "fillColor") != 0 {
+                err = .UnexpectedValueAtPrimitivePropertyName
+                return
+        }
+
+        for i in 15..=18 {
+                if tokens[nextTokenIndex + i].type == .Number {
+                        rectangleCoord[i-15] = tokens[nextTokenIndex + i].data.num
+                } else {
+                        err = .UnexpectedTokenTypeAtPrimitivePropertyValue
+                        return
+                }
+        }
+        primitive.rectangle.fillColor = {auto_cast rectangleCoord[0], auto_cast rectangleCoord[1], auto_cast rectangleCoord[2], auto_cast rectangleCoord[3]}
+
+        nextTokenIndex += 19
+
         return
 }
 

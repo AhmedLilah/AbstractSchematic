@@ -15,7 +15,7 @@ import "core:unicode/utf8"
 import rl "vendor:raylib"
 
 import "../types"
-import "../draw/draw_helper"
+import "../transform"
 import "../parser"
 import "../globals"
 
@@ -115,30 +115,30 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
                         internalInstanceCopy := types.SymbolInstance{types.Symbol{i.name, internalSymbolPrimitives[:]}, i.pos, i.rotation, i.horizontalFlip, i.verticalFlip}
 
                         // Correction for the inverted monitor Y-Axis
-                        draw_helper.flipVertically(&internalInstanceCopy)
+                        transform.flipVertically(&internalInstanceCopy)
 
                         // Handel Rotation
                         switch i.rotation  {
                         case types.Rotation.East:
                         case .North:
-                                draw_helper.rotate(&internalInstanceCopy)
+                                transform.rotate(&internalInstanceCopy)
                         case .West:
-                                draw_helper.rotate(&internalInstanceCopy)
-                                draw_helper.rotate(&internalInstanceCopy)
+                                transform.rotate(&internalInstanceCopy)
+                                transform.rotate(&internalInstanceCopy)
                         case .South:
-                                draw_helper.rotate(&internalInstanceCopy)
-                                draw_helper.rotate(&internalInstanceCopy)
-                                draw_helper.rotate(&internalInstanceCopy)
+                                transform.rotate(&internalInstanceCopy)
+                                transform.rotate(&internalInstanceCopy)
+                                transform.rotate(&internalInstanceCopy)
                         }
 
                         // Vertical Flipping
                         if internalInstanceCopy.verticalFlip {
-                                draw_helper.flipVertically(&internalInstanceCopy)
+                                transform.flipVertically(&internalInstanceCopy)
                         }
 
                         // Horizontal Flipping
                         if internalInstanceCopy.horizontalFlip {
-                                draw_helper.flipHorizontally(&internalInstanceCopy)
+                                transform.flipHorizontally(&internalInstanceCopy)
                         }
 
                         
@@ -223,7 +223,7 @@ saveSymbolToFile :: proc (name : string, instances : [] types.DrawableInstance) 
         ////////////////////////////////////////////
 
  //        tempSymb, EEEEE := parser.parse(strings.to_string(fileString))
- //        draw_helper.flipVertically(&types.SymbolInstance{tempSymb, {0,0}, .East, false, false})
+ //        transform.flipVertically(&types.SymbolInstance{tempSymb, {0,0}, .East, false, false})
 	// tempfileString : strings.Builder
 	// strings.write_string(&tempfileString, name)
 	// strings.write_string(&tempfileString, " {\n")

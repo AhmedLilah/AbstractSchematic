@@ -9,7 +9,7 @@ import rlgl "vendor:raylib/rlgl"
 
 import "../utils"
 import "../types"
-import "../draw/draw_helper"
+import "../transform"
 import "../globals"
 
 
@@ -62,10 +62,10 @@ wire :: proc(wire : types.Wire, camera : rl.Camera2D) {
                 rl.DrawLineEx({line1.x, line1.y},  {line1.z, line1.w}, wire.strokeThickness, wire.strokeColor)
 
                 // // dots to fix wire angle discontinuity
-                rl.DrawCircleV({line0.x, line0.y}, wire.strokeThickness/2, wire.strokeColor)
-                rl.DrawCircleV({line0.z, line0.w}, wire.strokeThickness/2, wire.strokeColor)
-                rl.DrawCircleV({line1.x, line1.y}, wire.strokeThickness/2, wire.strokeColor)
-                rl.DrawCircleV({line1.z, line1.w}, wire.strokeThickness/2, wire.strokeColor)
+                // rl.DrawCircleV({line0.x, line0.y}, wire.strokeThickness/2, wire.strokeColor)
+                // rl.DrawCircleV({line0.z, line0.w}, wire.strokeThickness/2, wire.strokeColor)
+                // rl.DrawCircleV({line1.x, line1.y}, wire.strokeThickness/2, wire.strokeColor)
+                // rl.DrawCircleV({line1.z, line1.w}, wire.strokeThickness/2, wire.strokeColor)
         }
 }
 
@@ -75,30 +75,30 @@ symbol :: proc(symbolInstance : types.SymbolInstance, camera : rl.Camera2D) {
         internalInstanceCopy := types.SymbolInstance{types.Symbol{symbolInstance.name, internalSymbolPrimitives[:]}, symbolInstance.pos, symbolInstance.rotation, symbolInstance.horizontalFlip, symbolInstance.verticalFlip}
 
         // Correction for the inverted monitor Y-Axis
-        draw_helper.flipVertically(&internalInstanceCopy)
+        transform.flipVertically(&internalInstanceCopy)
 
         // Handel Rotation
         switch symbolInstance.rotation  {
         case .East:
         case .North:
-                draw_helper.rotate(&internalInstanceCopy)
+                transform.rotate(&internalInstanceCopy)
         case .West:
-                draw_helper.rotate(&internalInstanceCopy)
-                draw_helper.rotate(&internalInstanceCopy)
+                transform.rotate(&internalInstanceCopy)
+                transform.rotate(&internalInstanceCopy)
         case .South:
-                draw_helper.rotate(&internalInstanceCopy)
-                draw_helper.rotate(&internalInstanceCopy)
-                draw_helper.rotate(&internalInstanceCopy)
+                transform.rotate(&internalInstanceCopy)
+                transform.rotate(&internalInstanceCopy)
+                transform.rotate(&internalInstanceCopy)
         }
 
         // Vertical Flipping
         if internalInstanceCopy.verticalFlip {
-                draw_helper.flipVertically(&internalInstanceCopy)
+                transform.flipVertically(&internalInstanceCopy)
         }
 
         // Horizontal Flipping
         if symbolInstance.horizontalFlip {
-                draw_helper.flipHorizontally(&internalInstanceCopy)
+                transform.flipHorizontally(&internalInstanceCopy)
         }
 
         pos:= internalInstanceCopy.pos
@@ -115,9 +115,9 @@ symbol :: proc(symbolInstance : types.SymbolInstance, camera : rl.Camera2D) {
                         p1 := line.p1 + pos
                         rl.DrawLineEx(p0,  p1,  line.strokeThickness, line.strokeColor)
 
-                        // dots to fix wire angle discontinuity
-                        rl.DrawCircleV(p0, line.strokeThickness/2, line.strokeColor)
-                        rl.DrawCircleV(p1, line.strokeThickness/2, line.strokeColor)
+                        // // dots to fix wire angle discontinuity
+                        // rl.DrawCircleV(p0, line.strokeThickness/2, line.strokeColor)
+                        // rl.DrawCircleV(p1, line.strokeThickness/2, line.strokeColor)
                 case .Spline:
                 case .Triangle:
                         triangle := primitive.triangle
@@ -128,20 +128,26 @@ symbol :: proc(symbolInstance : types.SymbolInstance, camera : rl.Camera2D) {
 
                         lineWidth := triangle.strokeThickness * math.pow(camera.zoom, 2)
 
-                        fmt.printfln("line width: %v", lineWidth)
-
-                        rlgl.DisableBackfaceCulling()
                         rlgl.SetLineWidth(lineWidth)
 
                         rl.DrawTriangle(p0, p1, p2, triangle.fillColor)
                         rl.DrawTriangleLines(p0, p1, p2, triangle.strokeColor)
                         
-                        // dots to fix wire angle discontinuity
-                        rl.DrawCircleV(p0, triangle.strokeThickness/2, triangle.strokeColor)
-                        rl.DrawCircleV(p1, triangle.strokeThickness/2, triangle.strokeColor)
-                        rl.DrawCircleV(p2, triangle.strokeThickness/2, triangle.strokeColor)
-                        
+                        // // dots to fix wire angle discontinuity
+                        // rl.DrawCircleV(p0, triangle.strokeThickness/2, triangle.strokeColor)
+                        // rl.DrawCircleV(p1, triangle.strokeThickness/2, triangle.strokeColor)
+                        // rl.DrawCircleV(p2, triangle.strokeThickness/2, triangle.strokeColor)
                 case .Rectangle:
+                        rectangle := primitive.rectangle
+                        
+                        rectPos  := rectangle.pos + pos
+                        rectSize := rectangle.size
+
+                        // rl.DrawRectangleV(rectPos, rectSize, rectangle.fillColor)
+                        // rl.DrawRectangleLinesEx({rectPos.x, rectPos.y, rectSize.x, rectSize.y}, rectangle.strokeThickness, rectangle.strokeColor)
+
+                        rl.DrawRectangleV(rectPos, rectSize, rl.BLACK)
+                        rl.DrawRectangleLinesEx({rectPos.x, rectPos.y, rectSize.x, rectSize.y}, rectangle.strokeThickness, rl.RED)
                 case .RoundedRectangle:
                 case .Circle:
                 case .Sector:

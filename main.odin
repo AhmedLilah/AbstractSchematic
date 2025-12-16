@@ -1,7 +1,5 @@
 package main
 
-// any chage for git
-
 import "core:fmt"
 import "core:math"
 import "core:strings"
@@ -9,6 +7,7 @@ import "core:unicode"
 import "core:unicode/utf8"
 
 import rl "vendor:raylib"
+import rlgl "vendor:raylib/rlgl"
 
 import "lib/utils"
 import "lib/draw"
@@ -87,6 +86,12 @@ main :: proc() {
         defer rl.CloseWindow()
         rl.SetTargetFPS(globals.TARGET_FPS)
         rl.SetExitKey(.KEY_NULL)
+
+        // rlgl Setup
+        rlgl.DisableBackfaceCulling()
+        rlgl.EnableSmoothLines()
+        rlgl.EnableDepthMask()
+        rlgl.EnableDepthTest()
 
         // Cursor Setup
         rl.HideCursor()
