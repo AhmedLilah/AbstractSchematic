@@ -3,6 +3,7 @@ package draw
 import "base:builtin"
 import "core:fmt"
 import "core:math"
+import "core:c"
 
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
@@ -17,14 +18,35 @@ crossHair :: proc(mouseCoord : [2] f32, thickness : f32, color : rl.Color, windo
 	horizontalLineP0, horizontalLineP1 : [2] f32 
 	verticalLineP0,   verticalLineP1   : [2] f32 
 
-	horizontalLineP0 = {mouseCoord.x - 100, mouseCoord.y}
-	horizontalLineP1 = {mouseCoord.x + 100, mouseCoord.y}
+        mouseScreenPos := rl.GetWorldToScreen2D(mouseCoord, camera)
 
-	verticalLineP0   = {mouseCoord.x,       mouseCoord.y - 100}
-	verticalLineP1   = {mouseCoord.x,       mouseCoord.y + 100}
+	// horizontalLineP0 = {mouseCoord.x - windowSize.x/2,                  mouseCoord.y}
+	// horizontalLineP1 = {mouseCoord.x + windowSize.x/2,                  mouseCoord.y}
+
+	horizontalLineP0 = {0,            mouseScreenPos.y}
+	horizontalLineP1 = {windowSize.x, mouseScreenPos.y}
+
+	verticalLineP0   = {mouseScreenPos.x, 0}
+	verticalLineP1   = {mouseScreenPos.x, windowSize.y}
+
+        horizontalLineP0 = rl.GetScreenToWorld2D(horizontalLineP0, camera)
+        horizontalLineP1 = rl.GetScreenToWorld2D(horizontalLineP1, camera)
+
+        verticalLineP0 = rl.GetScreenToWorld2D(verticalLineP0, camera)
+        verticalLineP1 = rl.GetScreenToWorld2D(verticalLineP1, camera)
+
 
 	rl.DrawLineEx(horizontalLineP0,  horizontalLineP1, thickness/camera.zoom, color)
 	rl.DrawLineEx(verticalLineP0,	 verticalLineP1,   thickness/camera.zoom, color)
+}
+
+centeredRectangle :: proc (center : [2] f32, size : [2] f32, color : rl.Color) {
+        pos : [2] f32 = {center.x - size.x/2, center.y - size.y/2}
+        rl.DrawRectangleV(pos, size, color)
+}
+
+centeredSquare :: proc (center : [2] f32, length : f32, color : rl.Color) {
+        centeredRectangle(center, {length, length}, color)
 }
 
 wire :: proc(wire : types.Wire, camera : rl.Camera2D) {
@@ -39,38 +61,55 @@ wire :: proc(wire : types.Wire, camera : rl.Camera2D) {
                 // If vertical
                 case (p1.x - p0.x) == 0:
                         line0 = {p0.x, p0.y, p1.x, p1.y}
-                        line1 = {p0.x, p0.y, p1.x, p1.y}
+
+                        rl.DrawLineEx({line0.x, line0.y},  {line0.z, line0.w}, wire.strokeThickness, wire.strokeColor)
+
+                        centeredSquare(line0.xy, wire.strokeThickness, wire.strokeColor)
+                        centeredSquare(line0.zw, wire.strokeThickness, wire.strokeColor)
                 // If horizontal
                 case (p1.y - p0.y) == 0:
                         line0 = {p0.x, p0.y, p1.x, p0.y}
-                        line1 = {p0.x, p0.y, p1.x, p1.y}
+
+                        rl.DrawLineEx({line0.x, line0.y},  {line0.z, line0.w}, wire.strokeThickness, wire.strokeColor)
+
+                        centeredSquare(line0.xy, wire.strokeThickness, wire.strokeColor)
+                        centeredSquare(line0.zw, wire.strokeThickness, wire.strokeColor)
                 // If mostly horizontal
                 case math.abs(p1.x - p0.x) > math.abs(p1.y - p0.y):
                         line0 = {p0.x, p0.y, p1.x, p0.y}
                         line1 = {p1.x, p0.y, p1.x,   p1.y}
+
+                        rl.DrawLineEx({line0.x, line0.y},  {line0.z, line0.w}, wire.strokeThickness, wire.strokeColor)
+                        rl.DrawLineEx({line1.x, line1.y},  {line1.z, line1.w}, wire.strokeThickness, wire.strokeColor)
+
+                        centeredSquare(line0.xy, wire.strokeThickness, wire.strokeColor)
+                        centeredSquare(line0.zw, wire.strokeThickness, wire.strokeColor)
+                        centeredSquare(line1.zw, wire.strokeThickness, wire.strokeColor)
                 // If mostly vertical 
                 case math.abs(p1.y - p0.y) > math.abs(p1.x - p0.x):
                         line0 = {p0.x, p0.y, p0.x, p1.y}
                         line1 = {p0.x, p1.y, p1.x,   p1.y}
+                        rl.DrawLineEx({line0.x, line0.y},  {line0.z, line0.w}, wire.strokeThickness, wire.strokeColor)
+                        rl.DrawLineEx({line1.x, line1.y},  {line1.z, line1.w}, wire.strokeThickness, wire.strokeColor)
+                        
+                        centeredSquare(line0.xy, wire.strokeThickness, wire.strokeColor)
+                        centeredSquare(line0.zw, wire.strokeThickness, wire.strokeColor)
+                        centeredSquare(line1.zw, wire.strokeThickness, wire.strokeColor)
                 // If diagnal
                 case:
                         line0 = {p0.x, p0.y, p1.x, p1.y}
-                        line1 = {p0.x, p0.y, p1.x, p1.y}
+
+                        rl.DrawLineEx({line0.x, line0.y},  {line0.z, line0.w}, wire.strokeThickness, wire.strokeColor)
+
+                        centeredSquare(line0.xy, wire.strokeThickness*0.5, wire.strokeColor)
+                        centeredSquare(line0.zw, wire.strokeThickness*0.5, wire.strokeColor)
                 }
-
-                rl.DrawLineEx({line0.x, line0.y},  {line0.z, line0.w}, wire.strokeThickness, wire.strokeColor)
-                rl.DrawLineEx({line1.x, line1.y},  {line1.z, line1.w}, wire.strokeThickness, wire.strokeColor)
-
-                // // dots to fix wire angle discontinuity
-                // rl.DrawCircleV({line0.x, line0.y}, wire.strokeThickness/2, wire.strokeColor)
-                // rl.DrawCircleV({line0.z, line0.w}, wire.strokeThickness/2, wire.strokeColor)
-                // rl.DrawCircleV({line1.x, line1.y}, wire.strokeThickness/2, wire.strokeColor)
-                // rl.DrawCircleV({line1.z, line1.w}, wire.strokeThickness/2, wire.strokeColor)
         }
 }
 
 symbol :: proc(symbolInstance : types.SymbolInstance, camera : rl.Camera2D) {
         internalSymbolPrimitives := make([] types.Primitive, len(symbolInstance.primitives))
+        defer delete(internalSymbolPrimitives)
         copy(internalSymbolPrimitives, symbolInstance.primitives)
         internalInstanceCopy := types.SymbolInstance{types.Symbol{symbolInstance.name, internalSymbolPrimitives[:]}, symbolInstance.pos, symbolInstance.rotation, symbolInstance.horizontalFlip, symbolInstance.verticalFlip}
 
@@ -101,7 +140,7 @@ symbol :: proc(symbolInstance : types.SymbolInstance, camera : rl.Camera2D) {
                 transform.flipHorizontally(&internalInstanceCopy)
         }
 
-        pos:= internalInstanceCopy.pos
+        pos := internalInstanceCopy.pos
 
         // Drawing The Primitives
 	lastIndex := len(internalInstanceCopy.primitives) - 1
@@ -113,11 +152,8 @@ symbol :: proc(symbolInstance : types.SymbolInstance, camera : rl.Camera2D) {
 
                         p0 := line.p0 + pos
                         p1 := line.p1 + pos
-                        rl.DrawLineEx(p0,  p1,  line.strokeThickness, line.strokeColor)
 
-                        // // dots to fix wire angle discontinuity
-                        // rl.DrawCircleV(p0, line.strokeThickness/2, line.strokeColor)
-                        // rl.DrawCircleV(p1, line.strokeThickness/2, line.strokeColor)
+                        rl.DrawLineEx(p0,  p1,  line.strokeThickness, line.strokeColor)
                 case .Spline:
                 case .Triangle:
                         triangle := primitive.triangle
@@ -132,24 +168,31 @@ symbol :: proc(symbolInstance : types.SymbolInstance, camera : rl.Camera2D) {
 
                         rl.DrawTriangle(p0, p1, p2, triangle.fillColor)
                         rl.DrawTriangleLines(p0, p1, p2, triangle.strokeColor)
-                        
-                        // // dots to fix wire angle discontinuity
-                        // rl.DrawCircleV(p0, triangle.strokeThickness/2, triangle.strokeColor)
-                        // rl.DrawCircleV(p1, triangle.strokeThickness/2, triangle.strokeColor)
-                        // rl.DrawCircleV(p2, triangle.strokeThickness/2, triangle.strokeColor)
                 case .Rectangle:
                         rectangle := primitive.rectangle
                         
                         rectPos  := rectangle.pos + pos
                         rectSize := rectangle.size
 
-                        // rl.DrawRectangleV(rectPos, rectSize, rectangle.fillColor)
-                        // rl.DrawRectangleLinesEx({rectPos.x, rectPos.y, rectSize.x, rectSize.y}, rectangle.strokeThickness, rectangle.strokeColor)
-
-                        rl.DrawRectangleV(rectPos, rectSize, rl.BLACK)
-                        rl.DrawRectangleLinesEx({rectPos.x, rectPos.y, rectSize.x, rectSize.y}, rectangle.strokeThickness, rl.RED)
+                        rl.DrawRectangleV(rectPos, rectSize, rectangle.fillColor)
+                        rl.DrawRectangleLinesEx({rectPos.x, rectPos.y, rectSize.x, rectSize.y}, rectangle.strokeThickness, rectangle.strokeColor)
                 case .RoundedRectangle:
+                        roundedRectangle         := primitive.roundedRectangle
+                        roundness                := roundedRectangle.radius / math.min(roundedRectangle.size.x, roundedRectangle.size.y)
+                        roundedRectangleSegments := cast(c.int) (roundedRectangle.radius * 2 * camera.zoom)
+                        
+                        rectPos  := roundedRectangle.pos + pos
+                        rectSize := roundedRectangle.size
+
+                        rl.DrawRectangleRounded({rectPos.x, rectPos.y, rectSize.x,rectSize.y},  roundness, roundedRectangleSegments,roundedRectangle.fillColor)
+                        rl.DrawRectangleRoundedLinesEx({rectPos.x, rectPos.y, rectSize.x, rectSize.y}, roundness, roundedRectangleSegments, roundedRectangle.strokeThickness, roundedRectangle.strokeColor)
                 case .Circle:
+                        lineWidth := primitive.circle.strokeThickness * math.pow(camera.zoom, 2)
+
+                        rlgl.SetLineWidth(lineWidth)
+
+                        rl.DrawCircleV(primitive.circle.center + pos, primitive.circle.radius, primitive.circle.fillColor)
+                        rl.DrawCircleLinesV(primitive.circle.center + pos, primitive.circle.radius, primitive.circle.strokeColor)
                 case .Sector:
                 case .Arc:
                 case .Ring:
@@ -173,10 +216,17 @@ grid :: proc (gridSize : f32, gridType : types.GridType, color : rl.Color, windo
 	NUM_OF_Y_GRID_LINES := (windowSize.y / gridSize) / camera.zoom
 	thickness :: globals.DEFAULT_GRID_ELEMENT_THICKNESS
 
+        screenCornerWorld := rl.GetScreenToWorld2D({0, 0}, camera)
+
+        xShift := screenCornerWorld.x - (math.floor(screenCornerWorld.x / gridSize) * gridSize);
+        yShift := screenCornerWorld.y - (math.floor(screenCornerWorld.y / gridSize) * gridSize);
+
+        gridShift : [2] f32 = {xShift, yShift}
+
+gridShift = [2]f32{ xShift, yShift };
+
 	switch gridType {
         case .Lines: 
-		screenCornerWorld := rl.GetScreenToWorld2D({0, 0}, camera)
-		gridShift : [2] f32 = {cast(f32) ((cast(i32) screenCornerWorld.x) % (cast(i32) gridSize)), cast(f32) ((cast(i32) screenCornerWorld.y) % (cast(i32) gridSize))}
 		// // Drawing horizontal Lines
 		for y in 0..<NUM_OF_Y_GRID_LINES {
 			worldYPos := cast(f32) y * gridSize
@@ -195,15 +245,28 @@ grid :: proc (gridSize : f32, gridType : types.GridType, color : rl.Color, windo
 			rl.DrawLineEx(p0ScreenPos, p1ScreenPos, lineThickness, color)
 		}
         case .Dots:
-		// Drawing a dotted grid
-		for y in 0..<NUM_OF_Y_GRID_LINES {
-			for x in 0..<NUM_OF_X_GRID_LINES {
-				screenCornerWorld := rl.GetScreenToWorld2D({0, 0}, camera)
-				gridShift : [2] f32 = {cast(f32) ((cast(i32) screenCornerWorld.x) % (cast(i32) gridSize)), cast(f32) ((cast(i32) screenCornerWorld.y) % (cast(i32) gridSize))}
-				dotScreenPos := rl.Vector2{x, y} * gridSize + screenCornerWorld - gridShift
-				dotSize := (thickness + 0.5 * (((cast(i64) x % 5) == 0 && (cast(i64) y % 5) == 0) ? 1 : 0) ) / camera.zoom
-				rl.DrawCircleV(dotScreenPos, dotSize, color)
-			}
-		}
-	}
+                // 1. Calculate the world-space grid index
+                // We use floor to ensure that -0.1 becomes -1 (the next grid cell over)
+                startX := i64(math.floor(screenCornerWorld.x / gridSize))
+                startY := i64(math.floor(screenCornerWorld.y / gridSize))
+
+                for y in 0..<NUM_OF_Y_GRID_LINES {
+                        for x in 0..<NUM_OF_X_GRID_LINES {
+                                dotScreenPos := rl.Vector2{f32(x), f32(y)} * gridSize + screenCornerWorld - gridShift
+
+                                worldIdxX := startX + i64(x)
+                                worldIdxY := startY + i64(y)
+
+                                // 2. Correct Modulo check for Odin
+                                // We cast to f32 to use math.mod which handles negatives correctly for grids
+                                isMajorX := math.mod(f32(worldIdxX), 5.0) == 0
+                                isMajorY := math.mod(f32(worldIdxY), 5.0) == 0
+                                isMajor  := isMajorX && isMajorY
+
+                                dotSize := (thickness + (isMajor ? 0.75 : 0.0)) / camera.zoom
+
+                                rl.DrawCircleV(dotScreenPos, dotSize, color)
+                        }
+                }
+        }
 }

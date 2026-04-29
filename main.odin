@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:math"
+import "core:mem"
 import "core:strings"
 import "core:unicode"
 import "core:unicode/utf8"
@@ -22,6 +23,12 @@ cPtr  : [^] f32
 
 
 main :: proc() {
+        // Setting up memory allocator
+        tracker : mem.Tracking_Allocator
+        mem.tracking_allocator_init(&tracker, context.allocator)
+        defer mem.tracking_allocator_destroy(&tracker)
+        context.allocator = mem.tracking_allocator(&tracker)
+
         // Global State
         windowSize			:= globals.INITIAL_WINDOW_SIZE		// Initail Window Size
         showGrid                        := true                                 // Boolean that controls the grid visibility
@@ -33,28 +40,36 @@ main :: proc() {
         modelToInstanciate		:  types.DrawableInstance		// The model of the object chosed to be instanciated from 
         editorMode			:  types.EditorModes			// Different modes for the editors
         newSymbolName			:  strings.Builder			// Temporay holder to accept user input.
-        mouseOldPos                     := rl.GetMousePosition()                // 
-        mouseOldCoord                   :  [2] f32                              // 
-        previousLeftClickIsDown         := false                                // 
-        modelIndex                      := 0                                    //
+        mouseOldPos                     := rl.GetMousePosition()                // The grid size
+        mouseOldCoord                   :  [2] f32                              // The grid size
+        previousLeftClickIsDown         := false                                // The grid size
+        modelIndex                      := 0                                    // The grid size
         gridSize                        :  f32                                  // The grid size
-        mousePos                        :  [2] f32
-        mouseCoord                      :  [2] f32
-        mouseGridCoord                  :  [2] f32
+        mousePos                        :  [2] f32                              // The grid size
+        mouseCoord                      :  [2] f32                              // The grid size
+        mouseGridCoord                  :  [2] f32                              // The grid size
 
         // Deallocating the memory
         defer {
                 for &deviceModel in deviceModels {
+                        delete(deviceModel.name)
                         delete(deviceModel.primitives)
                 }
                 delete(deviceModels)
         }
 
         defer {
+                for &instance in instances {
+                        #partial switch inst in instance {
+                        // instances are pointing to the data in the models so we handle freeing them in the models.
+                        case types.Wire:
+                                delete(inst.points)
+                        }
+                }
                 delete(instances)
         }
 
-        delete(wirePointsBuffer)
+        defer delete(wirePointsBuffer)
 
         defer strings.builder_destroy(&newSymbolName)
         strings.builder_grow(&newSymbolName, 100)
@@ -84,14 +99,15 @@ main :: proc() {
         // Window Setup
         rl.InitWindow(cast(i32) globals.INITIAL_WINDOW_SIZE.x, cast(i32) globals.INITIAL_WINDOW_SIZE.y, "Abstract Schmematic Editor")
         defer rl.CloseWindow()
-        rl.SetTargetFPS(globals.TARGET_FPS)
+        // rl.SetTargetFPS(globals.TARGET_FPS)
+        rl.SetTargetFPS(0)
         rl.SetExitKey(.KEY_NULL)
 
         // rlgl Setup
         rlgl.DisableBackfaceCulling()
         rlgl.EnableSmoothLines()
-        rlgl.EnableDepthMask()
-        rlgl.EnableDepthTest()
+        // rlgl.EnableDepthMask()
+        // rlgl.EnableDepthTest()
 
         // Cursor Setup
         rl.HideCursor()
@@ -123,19 +139,40 @@ main :: proc() {
         deviceModels = utils.readLibraryModelFiles("assets/symbols/basic")
 
 
+        // Loading assets
+        // ----------------------------------------------------------------------------------------------------
+        icon            := rl.LoadImage("Abstract.png")
+        image           := rl.LoadImage("image.png")
+        fileTexture     := rl.LoadTexture("image.png")
+        imageTexture    := rl.LoadTextureFromImage(icon)
+
+        renderedTexture := rl.LoadRenderTexture(3000, 3000)
+
+        defer {
+                rl.UnloadImage(icon)
+                rl.UnloadImage(image)
+                rl.UnloadTexture(fileTexture)
+                rl.UnloadTexture(imageTexture)
+        }
+
+
+        // Setting the window icon
+        // ----------------------------------------------------------------------------------------------------
+        rl.SetWindowIcon(icon)
+
         // Main Loop
         // ----------------------------------------------------------------------------------------------------
         for !rl.WindowShouldClose() {
-
                 // Handle Full Screen
                 if rl.IsKeyPressed(.F11) {
                         rl.ToggleBorderlessWindowed()
                 }
 
                 // Window size
-                if rl.IsWindowResized(){
-                        windowSize = {cast(f32) rl.GetScreenWidth(), cast(f32) rl.GetScreenHeight()}
-                }
+                // if rl.IsWindowResized(){
+                //         windowSize = {cast(f32) rl.GetScreenWidth(), cast(f32) rl.GetScreenHeight()}
+                // }
+                windowSize = {cast(f32) rl.GetScreenWidth(), cast(f32) rl.GetScreenHeight()}
 
                 // Calculate Mouse Pos
                 mousePos   = rl.GetMousePosition()
@@ -333,13 +370,10 @@ main :: proc() {
                 // ----------------------------------------------------------------------------------------------------
                 rl.BeginMode2D(camera)
 
-                utils.calculateGridSize(&showGrid, &showFineGrid, &gridSize, &windowSize, &camera)
+                // rl.DrawTextureEx(imageTexture, {0, 0}, 0.0, camera.zoom, rl.RED)
 
-                if showFineGrid {
-                        // Drawing the grid
-                        draw.grid(gridSize/globals.DEFAULT_FINE_GRID_FACTOR, .Dots, globals.DEFAULT_GRID_COLOR, windowSize, camera)
-                } else {
-                        // Drawing the grid
+                if showGrid {
+                        utils.calculateGridSize(&showGrid, &showFineGrid, &gridSize, &windowSize, &camera)
                         draw.grid(gridSize, .Dots, globals.DEFAULT_GRID_COLOR, windowSize, camera)
                 }
 
@@ -377,9 +411,22 @@ main :: proc() {
                 bottomTextStartPos := rl.GetScreenToWorld2D({globals.DEFAULT_TEXT_PADDING, windowSize.y - globals.DEFAULT_TEXT_SIZE - globals.DEFAULT_TEXT_PADDING}, camera)
                 rl.DrawRectangleV(bottomRectStartPos, {windowSize.x, 36}/camera.zoom, rl.RAYWHITE)
                 rl.DrawLineEx(bottomRectStartPos, {(bottomRectStartPos.x + windowSize.x/camera.zoom), bottomRectStartPos.y}, globals.DEFAULT_LINE_THICKNESS/camera.zoom, rl.BLACK)
-                rl.DrawTextEx(font, rl.TextFormat("X: %v, Y: %v, \tZoom: %v%%, \tGrid Size: %v, \tFine Grid: %v, \tWire Thickness: %v", 
-                                                  mouseGridCoord.x, mouseGridCoord.y, camera.zoom * 100, gridSize, showFineGrid, wireThickness), 
+                rl.DrawTextEx(font, rl.TextFormat("FPS: %v, X: %v, Y: %v, \tZoom: %v%%, \tGrid Size: %v, \tFine Grid: %v, \tWire Thickness: %v, number of symbols: %v",
+                                                  rl.GetFPS(),
+                                                  mouseGridCoord.x, mouseGridCoord.y, camera.zoom * 100, gridSize, showFineGrid, wireThickness,len(deviceModels)), 
                                                   bottomTextStartPos, auto_cast (globals.DEFAULT_TEXT_SIZE/camera.zoom), 0, rl.BLACK)
+
+
+
+                // Starting Shader Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.BeginTextureMode(renderedTexture)
+
+
+                // Ending Shader Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.EndTextureMode()
+
 
 
                 // // Starting Shader Mode
@@ -403,5 +450,9 @@ main :: proc() {
 
 
                 free_all()
+        }
+
+        for _, leak in tracker.allocation_map {
+                fmt.printf("%v leaked %m\n", leak.location, leak.size)
         }
 }

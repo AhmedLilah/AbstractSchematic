@@ -20,13 +20,10 @@ import "../parser"
 import "../globals"
 
 
-// @NOTE: solve the EEEEE error problem
 // @BUG: when saving symbols the color gets saved showing teh [,] format. 
 //      probably because we are using the default formatting.
 
 readLibraryModelFiles :: proc(libraryDirName : string) -> (symbols : [dynamic] types.Symbol) {
-        fmt.println("starting library reading")
-        defer fmt.println("finished library reading")
 	if !os.is_dir(libraryDirName) {
 		msg := fmt.tprintf("'%s' isn't a directory.", libraryDirName)
 		panic(msg)
@@ -63,14 +60,18 @@ readLibraryModelFiles :: proc(libraryDirName : string) -> (symbols : [dynamic] t
 			panic(msg)
 		} else {
 			file, ok := os.read_entire_file(fileInfo.fullpath)
+                        defer delete(file)
 			if !ok {
 				msg := fmt.tprintf("Couldn't read the file '%s'", fileInfo.fullpath)
 				panic(msg)
 			}
 
 			fileStr := fmt.tprintf("%s", file)
-			sym, EEEEE := parser.parse(fileStr)
-			append(&symbols, sym)
+			sym, parsingError := parser.parse(fileStr)
+                        if parsingError != nil {
+                                fmt.printf("Parsing Error: %v", parsingError)
+                        }
+                        append(&symbols, sym)
 		}
 	}
 
@@ -287,8 +288,9 @@ handleGirdOptions :: proc (showGrid : ^ bool, showFineGrid : ^ bool, mouseCoord 
         if (rl.IsKeyDown(.LEFT_ALT) || rl.IsKeyDown(.RIGHT_ALT)) && rl.IsKeyPressed(.G) {
                 showFineGrid^ = !showFineGrid^
         } else if rl.IsKeyPressed(.G) {
-                showGrid^ = !showGrid^
+                showGrid^ = !(showGrid^)
         }
+
         if showFineGrid^ {
                 mouseGridCoord^ = {round(mouseCoord.x, globals.DEFAULT_GRID_SIZE/5), round(mouseCoord.y, globals.DEFAULT_GRID_SIZE/5)}
         } else {
@@ -298,17 +300,19 @@ handleGirdOptions :: proc (showGrid : ^ bool, showFineGrid : ^ bool, mouseCoord 
 
 
 calculateGridSize :: proc (showGrid : ^ bool, showFineGrid : ^ bool, gridSize : ^ f32, windowSize : ^ [2] f32, camera : ^ rl.Camera2D) {
-                // Hadeling adaptive grid sizing
-                if showGrid^ {
-                        if 0.2 <= camera.zoom && camera.zoom < 0.75{
-                                gridSize^ = globals.DEFAULT_GRID_SIZE * globals.DEFAULT_GRID_SCALING_FACTOR
-                        } else if 0.75 <= camera.zoom && camera.zoom < 4 {
-                                gridSize^ = globals.DEFAULT_GRID_SIZE
-                        } else if  4 <= camera.zoom  && camera.zoom <= 5 {
-                                gridSize^ = globals.DEFAULT_GRID_SIZE / globals.DEFAULT_GRID_SCALING_FACTOR
-                        }
-                }
+        if 0.2 <= camera.zoom && camera.zoom < 0.55{
+                gridSize^ = globals.DEFAULT_GRID_SIZE * globals.DEFAULT_GRID_SCALING_FACTOR
+        } else if 0.55 <= camera.zoom && camera.zoom < 3.5 {
+                gridSize^ = globals.DEFAULT_GRID_SIZE
+        } else if 3.5 <= camera.zoom && camera.zoom <= 5 {
+                gridSize^ = globals.DEFAULT_GRID_SIZE / globals.DEFAULT_GRID_SCALING_FACTOR
+        }
 
+        // gridSize^ = globals.DEFAULT_GRID_SIZE
+
+        if showFineGrid^ {
+                gridSize^ /=globals.DEFAULT_FINE_GRID_FACTOR
+        }
 }
 
 

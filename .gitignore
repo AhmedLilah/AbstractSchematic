@@ -1,10 +1,7 @@
 # Directories to be ignored form the repo.
 ./build/
-./.vs/
-./.VS/
-
 .vs/
-.VS/
+./tempBasic/
 
 
 # File types to be ignored from the repo

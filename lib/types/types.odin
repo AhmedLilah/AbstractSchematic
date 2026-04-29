@@ -45,7 +45,7 @@ SplineType :: enum {
 
 Spline :: struct {
         splineType   : SplineType,
-        points       : [] Point,
+        points       : [4] Point,
         using stroke : StrokeData,
 }
 
@@ -60,7 +60,7 @@ Rectangle :: struct {
 }
 
 RoundedRectangle :: struct {
-        p0, p1              : Point,
+        pos, size           : Point,
         radius              : f32,
         using strokeAndFill : FillAndStroke,
 }
@@ -127,7 +127,7 @@ Primitive :: struct {
                 spline           : Spline,
                 triangle         : Triangle,
                 rectangle        : Rectangle,
-                roundedRectangel : RoundedRectangle,
+                roundedRectangle : RoundedRectangle,
                 circle           : Circle,
                 sector           : Sector,
                 arc              : Arc,
@@ -145,6 +145,7 @@ Wire :: struct {
         points       : [] Point,
         using stroke : StrokeData,
         pos          : [2] f32
+        // @TODO: Add a net/wire name filed here.
 }
 
 
@@ -171,9 +172,6 @@ DrawableInstance :: union {
         SymbolInstance,
         Wire,
 }
-
-
-
 
 
 GridType :: enum u8 {
