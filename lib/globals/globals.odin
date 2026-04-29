@@ -19,3 +19,4 @@ DEFAULT_TEXT_SIZE		:: 22					//
 DEFAULT_TEXT_PADDING		:: 2					//
 DEFAULT_MAX_ZOOM                :: 5                                    //
 DEFAULT_MIN_ZOOM                :: 0.2                                  //
+DEFAULT_BACKGROUND_COLOR        :: rl.WHITE                             //

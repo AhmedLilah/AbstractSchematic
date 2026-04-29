@@ -48,6 +48,11 @@ main :: proc() {
         mousePos                        :  [2] f32                              // The grid size
         mouseCoord                      :  [2] f32                              // The grid size
         mouseGridCoord                  :  [2] f32                              // The grid size
+        redrawFlag                      :  bool                                 // The grid size
+        bgRenderTexture                       :  rl.RenderTexture
+        gridRenderTexture                     :  rl.RenderTexture
+        symbolsRenderTexture                  :  rl.RenderTexture
+        fgRenderTexture                       :  rl.RenderTexture
 
         // Deallocating the memory
         defer {
@@ -109,6 +114,12 @@ main :: proc() {
         // rlgl.EnableDepthMask()
         // rlgl.EnableDepthTest()
 
+        // Texture Setup
+        bgRenderTexture         = rl.LoadRenderTexture(auto_cast windowSize.x, auto_cast windowSize.y)
+        gridRenderTexture       = rl.LoadRenderTexture(auto_cast windowSize.x, auto_cast windowSize.y)
+        symbolsRenderTexture    = rl.LoadRenderTexture(auto_cast windowSize.x, auto_cast windowSize.y)
+        fgRenderTexture         = rl.LoadRenderTexture(auto_cast windowSize.x, auto_cast windowSize.y)
+
         // Cursor Setup
         rl.HideCursor()
 
@@ -169,10 +180,19 @@ main :: proc() {
                 }
 
                 // Window size
-                // if rl.IsWindowResized(){
-                //         windowSize = {cast(f32) rl.GetScreenWidth(), cast(f32) rl.GetScreenHeight()}
-                // }
-                windowSize = {cast(f32) rl.GetScreenWidth(), cast(f32) rl.GetScreenHeight()}
+                if rl.IsWindowResized(){
+                        windowSize = {cast(f32) rl.GetScreenWidth(), cast(f32) rl.GetScreenHeight()}
+                        redrawFlag = true
+                }
+
+                defer redrawFlag = false
+
+                if redrawFlag {
+                        bgRenderTexture         = rl.LoadRenderTexture(auto_cast windowSize.x, auto_cast windowSize.y)
+                        gridRenderTexture       = rl.LoadRenderTexture(auto_cast windowSize.x, auto_cast windowSize.y)
+                        symbolsRenderTexture    = rl.LoadRenderTexture(auto_cast windowSize.x, auto_cast windowSize.y)
+                        fgRenderTexture         = rl.LoadRenderTexture(auto_cast windowSize.x, auto_cast windowSize.y)
+                }
 
                 // Calculate Mouse Pos
                 mousePos   = rl.GetMousePosition()
@@ -357,30 +377,88 @@ main :: proc() {
                 } 
 
 
-                // Starting the drawing mode
-                // ----------------------------------------------------------------------------------------------------
-                rl.BeginDrawing()
 
+
+                // Starting BG Txture Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.BeginTextureMode(bgRenderTexture)
 
                 // Clearing  the background
-                rl.ClearBackground(rl.WHITE)
+                rl.ClearBackground(globals.DEFAULT_BACKGROUND_COLOR)
+
+                // Ending BG Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.EndTextureMode()
 
 
-                // Starting the drawing mode
+
+
+                // Starting Grid Txture Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.BeginTextureMode(gridRenderTexture)
+
+                // Clearing  the background
+                rl.ClearBackground(rl.BLANK)
+
+                // Starting the 2D drawing mode
                 // ----------------------------------------------------------------------------------------------------
                 rl.BeginMode2D(camera)
-
-                // rl.DrawTextureEx(imageTexture, {0, 0}, 0.0, camera.zoom, rl.RED)
 
                 if showGrid {
                         utils.calculateGridSize(&showGrid, &showFineGrid, &gridSize, &windowSize, &camera)
                         draw.grid(gridSize, .Dots, globals.DEFAULT_GRID_COLOR, windowSize, camera)
                 }
 
+                // Ending the 2D drawing mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.EndMode2D()
+
+                // Ending Grid Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.EndTextureMode()
+
+
+
+
+                // Starting Symbols Txture Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.BeginTextureMode(symbolsRenderTexture)
+
+                // Clearing  the background
+                rl.ClearBackground(rl.BLANK)
+
+                // Starting the 2D drawing mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.BeginMode2D(camera)
+
+
                 // Draw Symbols
                 for &instance in instances {
                         draw.instance(instance, camera)
                 }
+
+
+                // Ending the 2D drawing mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.EndMode2D()
+
+                // Ending Symbols Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.EndTextureMode()
+
+
+
+
+                // Starting FG Txture Mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.BeginTextureMode(fgRenderTexture)
+
+                // Clearing  the background
+                rl.ClearBackground(rl.BLANK)
+
+                // Starting the 2D drawing mode
+                // ----------------------------------------------------------------------------------------------------
+                rl.BeginMode2D(camera)
 
                 // show the file name to be saved
                 switch editorMode {
@@ -406,7 +484,6 @@ main :: proc() {
                         rl.DrawTextEx(font, strings.clone_to_cstring(transmute(string)newSymbolName.buf[:]), topTextStartPos, auto_cast (globals.DEFAULT_TEXT_SIZE/camera.zoom), 0, rl.BLACK)
                 }	
 
-
                 bottomRectStartPos := rl.GetScreenToWorld2D({0, windowSize.y - globals.DEFAULT_TEXT_SIZE - 2 * globals.DEFAULT_TEXT_PADDING}, camera)
                 bottomTextStartPos := rl.GetScreenToWorld2D({globals.DEFAULT_TEXT_PADDING, windowSize.y - globals.DEFAULT_TEXT_SIZE - globals.DEFAULT_TEXT_PADDING}, camera)
                 rl.DrawRectangleV(bottomRectStartPos, {windowSize.x, 36}/camera.zoom, rl.RAYWHITE)
@@ -416,16 +493,14 @@ main :: proc() {
                                                   mouseGridCoord.x, mouseGridCoord.y, camera.zoom * 100, gridSize, showFineGrid, wireThickness,len(deviceModels)), 
                                                   bottomTextStartPos, auto_cast (globals.DEFAULT_TEXT_SIZE/camera.zoom), 0, rl.BLACK)
 
-
-
-                // Starting Shader Mode
+                // Ending the 2D drawing mode
                 // ----------------------------------------------------------------------------------------------------
-                rl.BeginTextureMode(renderedTexture)
+                rl.EndMode2D()
 
-
-                // Ending Shader Mode
+                // Ending BG Mode
                 // ----------------------------------------------------------------------------------------------------
                 rl.EndTextureMode()
+
 
 
 
@@ -439,14 +514,25 @@ main :: proc() {
                 // rl.EndShaderMode()
 
 
+
+
                 // Starting the drawing mode
                 // ----------------------------------------------------------------------------------------------------
-                rl.EndMode2D()
+                rl.BeginDrawing()
 
+                // Clearing  the background
+                rl.ClearBackground(rl.BLANK)
+
+                rl.DrawTextureRec(bgRenderTexture.texture, { 0, 0, auto_cast bgRenderTexture.texture.width, auto_cast -bgRenderTexture.texture.height }, { 0, 0 }, rl.RAYWHITE)
+                rl.DrawTextureRec(gridRenderTexture.texture, { 0, 0, auto_cast gridRenderTexture.texture.width, auto_cast -gridRenderTexture.texture.height }, { 0, 0 }, rl.RAYWHITE)
+                rl.DrawTextureRec(symbolsRenderTexture.texture, { 0, 0, auto_cast symbolsRenderTexture.texture.width, auto_cast -symbolsRenderTexture.texture.height }, { 0, 0 }, rl.RAYWHITE)
+                rl.DrawTextureRec(fgRenderTexture.texture, { 0, 0, auto_cast fgRenderTexture.texture.width, auto_cast -fgRenderTexture.texture.height }, { 0, 0 }, rl.RAYWHITE)
 
                 // Ending drawing mode
                 // ----------------------------------------------------------------------------------------------------
                 rl.EndDrawing()
+
+
 
 
                 free_all()
